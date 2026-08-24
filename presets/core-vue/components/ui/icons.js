@@ -26,6 +26,9 @@ import {
   CircleDot, RefreshCw, ChevronsUpDown, ArrowUp, ArrowDown, Minus, Folder, FolderInput,
   Calendar, Eye, EyeOff, Mail,
   Link,
+  Upload,
+  Mic,
+  FileAudio,
 } from 'lucide-vue-next'
 
 export const icons = {
@@ -34,6 +37,9 @@ export const icons = {
   doc: FileText,         /* протокол, шаблон */
   wave: AudioLines,      /* голос — центральный знак продукта */
   link: Link,           /* «вставьте ссылку» — цепочка, а не кубики */
+  upload: Upload,       /* «загрузить готовую запись» — стрелка вверх: файл уходит от человека */
+  mic: Mic,             /* «записать» — общепринятый знак записи, не волна */
+  'audio-file': FileAudio,  /* загруженное аудио: файл, а не громкость */
   plug: Blocks,          /* интеграции: кубики собираются, вилка — про питание */
   user: User,
   panel: PanelLeft,      /* свернуть сайдбар */
