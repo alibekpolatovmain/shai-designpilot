@@ -40,17 +40,24 @@
   }
   const over = (t, b) => { const a = t.a + b.a * (1 - t.a)
     return { rgb: t.rgb.map((v, i) => (v * t.a + b.rgb[i] * b.a * (1 - t.a)) / (a || 1)), a } }
+  /* Градиент под текстом измерить нельзя: у фона там не цвет, а протяжённость.
+     Первая версия шла мимо него к белому и выдавала 1.00 на белом тексте по
+     тёмно-зелёному — то есть кричала о нарушении там, где его нет. Теперь
+     такой случай возвращает null и попадает в «не измерено», а не в находки:
+     ложная тревога стоит доверия ко всему отчёту. */
   const bgOf = (el) => { let n = el, acc = null
-    while (n) { const c = parse(S(n).backgroundColor)
-      if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc.rgb }
+    while (n) { const c = S(n)
+      if (c.backgroundImage && c.backgroundImage.includes('gradient')) return null
+      const b = parse(c.backgroundColor)
+      if (b && b.a > 0) { acc = acc ? over(acc, b) : b; if (acc.a >= 0.999) return acc.rgb }
       n = n.parentElement }
     const page = parse(S(document.body).backgroundColor) || { rgb: [255, 255, 255], a: 1 }
     return acc ? over(acc, page).rgb : page.rgb
   }
 
   /* ── сбор ─────────────────────────────────────────────── */
-  const out = { контраст: [], безымянные: [], мелкиеЦели: [], растянутые: [], поля: [],
-                картинки: [], заголовки: [], вкладки: [], итог: {} }
+  const out = { контраст: [], наГрадиенте: [], безымянные: [], мелкиеЦели: [], растянутые: [],
+                поля: [], картинки: [], заголовки: [], вкладки: [], итог: {} }
   const seen = new Set()
   const nameOf = (el) => (el.innerText || '').trim() || el.getAttribute('aria-label') ||
     el.getAttribute('title') || (el.getAttribute('aria-labelledby') &&
@@ -66,7 +73,8 @@
       .map((n) => n.textContent.trim()).join(' ')
     if (own) {
       const fg = parse(cs.color); const bg = bgOf(el)
-      if (fg) {
+      if (fg && !bg) out.наГрадиенте.push(`«${own.slice(0, 40)}» — измерить нельзя, под текстом градиент`)
+      if (fg && bg) {
         const mix = fg.a < 1 ? fg.rgb.map((v, i) => v * fg.a + bg[i] * (1 - fg.a)) : fg.rgb
         const size = parseFloat(cs.fontSize)
         const need = size >= 24 || (size >= 18.66 && +cs.fontWeight >= 700) ? 3 : 4.5
