@@ -1,52 +1,118 @@
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Прогон автопилота</title>
 <!-- Дашборд дизайн-прогона. Копируется в .designpilot/ один раз и больше не
      правится: состояние приходит из state.js рядом, а снимок внутри страницы
      держит sync.py. Поэтому страница показывает данные и открытая файлом,
-     и через месяц, и с мёртвым сервером. -->
+     и через месяц, и с мёртвым сервером.
+
+     Страница отвечает на пять вопросов владельца, в этом порядке:
+       где мы · что посмотреть · кто работал · что поставлено и сделано ·
+       что ждёт моего решения.
+     Всё, что не отвечает ни на один из них, отсюда убирается. -->
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #fff; --raised: #fff; --surface: #f4f5f7; --line: #e7e9ec;
+    --bg: #fff; --raised: #fff; --surface: #f4f5f7; --sunken: #eceef1;
+    --line: #e7e9ec; --line-strong: #d3d7dc;
     --text: #12292b; --soft: #40524f; --muted: #5e6b6c;
-    --accent: #2f6f66; --warn: #996129; --danger: #ab4b45; --ok: #2f6f66;
+    --accent: #2f6f66; --accent-quiet: #eef5f3;
+    --warn: #8a5a20; --warn-quiet: #fbf3e6;
+    --danger: #ab4b45; --danger-quiet: #fbefee; --ok: #2f6f66;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme=light]) {
-      --bg: #151515; --raised: #1a1a19; --surface: rgba(255,255,255,.05); --line: rgba(255,255,255,.10);
+      --bg: #151515; --raised: #1a1a19; --surface: rgba(255,255,255,.05); --sunken: rgba(255,255,255,.08);
+      --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.20);
       --text: #f0efec; --soft: #c3c2b7; --muted: #95938c;
-      --accent: #69a69c; --warn: #db9300; --danger: #ec7e7e; --ok: #69a69c;
+      --accent: #69a69c; --accent-quiet: rgba(105,166,156,.14);
+      --warn: #db9300; --warn-quiet: rgba(219,147,0,.14);
+      --danger: #ec7e7e; --danger-quiet: rgba(236,126,126,.14); --ok: #69a69c;
     }
   }
   * { box-sizing: border-box }
-  body { margin: 0; background: var(--bg); color: var(--text); padding: 32px 24px 64px;
+  html { scroll-behavior: smooth }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } }
+  body { margin: 0; background: var(--bg); color: var(--text); padding: 28px 20px 72px;
          font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
          -webkit-font-smoothing: antialiased }
-  .wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px }
+  .wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px }
   h1 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -.03em; font-weight: 600 }
-  h2 { margin: 0 0 10px; font-size: 16px; line-height: 24px; letter-spacing: -.02em; font-weight: 600 }
+  h2 { margin: 0 0 2px; font-size: 16px; line-height: 24px; letter-spacing: -.02em; font-weight: 600 }
+  h3 { margin: 0; font-size: 13px; line-height: 20px; font-weight: 600; color: var(--soft) }
   .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline }
-  .chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 2px 10px;
           border-radius: 999px; background: var(--surface); color: var(--soft); font-size: 12px; font-weight: 600 }
   .muted { color: var(--muted); font-size: 12px }
-  .card { border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 16px }
-  table { width: 100%; border-collapse: collapse; font-size: 14px }
-  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 6px 8px }
+  .lede { color: var(--soft); font-size: 13px; margin: 0 0 12px }
+  section { border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 16px;
+            scroll-margin-top: 16px }
+  table { width: 100%; border-collapse: collapse; font-size: 13px }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 6px 8px; white-space: nowrap }
   td { padding: 8px; border-top: 1px solid var(--line); vertical-align: top }
-  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted) }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap }
   ul { margin: 0; padding-left: 18px } li { margin: 4px 0 }
-  .stages { display: flex; flex-wrap: wrap; gap: 6px }
-  .st { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
-        border: 1px solid var(--line); font-size: 13px; background: var(--raised) }
-  .st b { font-weight: 600 }
-  .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line); flex: none }
-  .st.done .dot { background: var(--ok) } .st.done { color: var(--soft) }
+  ul.bare { list-style: none; padding: 0 }
+
+  /* Этапы. Выглядят нажимаемыми — и нажимаются: каждый ведёт к своему разделу.
+     Ровно то, что раньше было враньём формы: кромка и скругление обещали
+     кнопку, а элемент был подписью. */
+  .rail { display: flex; flex-wrap: wrap; gap: 6px }
+  .st { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px;
+        border: 1px solid var(--line); font-size: 13px; font-weight: 600; background: var(--raised);
+        color: var(--muted); text-decoration: none }
+  .st:hover { border-color: var(--line-strong); background: var(--surface) }
+  .st:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+  .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line-strong); flex: none }
+  .st.done { color: var(--soft) } .st.done .dot { background: var(--ok) }
   .st.active { border-color: var(--accent); color: var(--text) }
   .st.active .dot { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent) }
-  .fixed { color: var(--ok) } .open { color: var(--danger) } .ask { color: var(--warn) }
+
+  .stage-list { display: flex; flex-direction: column; gap: 0 }
+  .stage-row { display: grid; grid-template-columns: 12px 116px 1fr; gap: 10px; align-items: start;
+               padding: 9px 0; border-top: 1px solid var(--line) }
+  .stage-row:first-child { border-top: 0 }
+  .stage-row .dot { margin-top: 6px }
+  .stage-row b { font-weight: 600 }
+  .stage-row.pending b, .stage-row.pending span { color: var(--muted) }
+
+  .links { display: flex; flex-wrap: wrap; gap: 8px }
+  .link-card { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 10px;
+               border: 1px solid var(--line); background: var(--raised); text-decoration: none; min-width: 168px }
+  .link-card:hover { border-color: var(--accent); background: var(--accent-quiet) }
+  .link-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+  .link-card b { color: var(--accent); font-size: 13px; font-weight: 600 }
+  .link-card span { color: var(--muted); font-size: 12px }
+
   a { color: var(--accent); font-weight: 600; text-decoration: none }
-  a:hover { text-decoration: underline; text-underline-offset: 4px }
-  .empty { color: var(--muted); font-size: 13px }
+  a:hover { text-decoration: underline; text-underline-offset: 3px }
+
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600;
+         background: var(--surface); color: var(--muted); white-space: nowrap }
+  .tag.ok { background: var(--accent-quiet); color: var(--accent) }
+  .tag.ask { background: var(--warn-quiet); color: var(--warn) }
+  .tag.bad { background: var(--danger-quiet); color: var(--danger) }
+  .fixed { color: var(--ok) } .open { color: var(--danger) } .ask { color: var(--warn) }
+  .empty { color: var(--muted); font-size: 13px; margin: 0 }
+  .note { border-left: 2px solid var(--line-strong); padding-left: 10px; color: var(--muted); font-size: 12px }
+
+  details { border-top: 1px solid var(--line); padding: 8px 0 }
+  details > summary { cursor: pointer; font-size: 13px; font-weight: 600; list-style: none;
+                      display: flex; align-items: center; gap: 8px; padding: 2px 0 }
+  details > summary::-webkit-details-marker { display: none }
+  details > summary::before { content: "›"; color: var(--muted); font-size: 15px; line-height: 1;
+                              transition: transform .12s ease; display: inline-block }
+  details[open] > summary::before { transform: rotate(90deg) }
+  details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px }
+  .det-body { padding: 8px 0 4px 16px; display: flex; flex-direction: column; gap: 10px }
+  @media (prefers-reduced-motion: reduce) { details > summary::before { transition: none } }
+
+  .grid2 { display: grid; gap: 10px; grid-template-columns: 1fr; align-items: start }
+  @media (min-width: 760px) { .grid2 { grid-template-columns: 1fr 1fr } }
+  .box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg) }
+  .box h3 { margin-bottom: 4px }
+  .warnbar { border: 1px solid var(--warn); border-radius: 10px; background: var(--warn-quiet);
+             padding: 10px 12px; color: var(--text); font-size: 13px }
 </style>
 
 <script>/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/</script>
@@ -56,8 +122,13 @@
 
 <script>
 const STAGES = [
-  ['intake', 'Приём'], ['discovery', 'Разбор'], ['system', 'Система'], ['plan', 'План'],
-  ['work', 'Работа'], ['verify', 'Проверка'], ['ship', 'Сдача'],
+  ['intake', 'Приём', 'что делаем, где, чего не трогаем'],
+  ['discovery', 'Разбор', 'инвентарь исходника и замеры'],
+  ['system', 'Система', 'найдена, вытащена или собрана'],
+  ['plan', 'План', 'экран → задачи → вопросы'],
+  ['work', 'Работа', 'экран за экраном'],
+  ['verify', 'Проверка', 'линтер, браузер, сверка с исходником'],
+  ['ship', 'Сдача', 'документация, коммит, ссылка'],
 ]
 const POLL = 10000
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
@@ -75,89 +146,218 @@ const ago = (iso) => {
   const h = Math.floor(m / 60); if (h < 24) return `${h} ${plural(h, 'час', 'часа', 'часов')} назад`
   const d = Math.floor(h / 24); return `${d} ${plural(d, 'день', 'дня', 'дней')} назад`
 }
+/* Этап приходит либо строкой «done», либо объектом {state, note}: старые
+   прогоны не должны ломать страницу новой версии. */
+const stageOf = (s, id) => {
+  const v = (s.stages || {})[id]
+  return typeof v === 'string' ? { state: v, note: '' } : (v || { state: 'pending', note: '' })
+}
+const link = (href, label) => href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${label}</a>` : ''
 
-function render() {
+function taskRows(tasks) {
+  return `<ul class="bare">${tasks.map((t) => `<li style="display:flex;gap:8px;align-items:baseline">
+    <span class="${t.state === 'done' ? 'fixed' : t.state === 'skip' ? 'muted' : 'ask'}" style="width:12px;flex:none">${
+      t.state === 'done' ? '✓' : t.state === 'skip' ? '–' : '•'}</span>
+    <span style="flex:1 1 auto">${esc(t.text)}</span>
+    ${t.by ? `<span class="tag">${esc(t.by)}</span>` : ''}
+  </li>`).join('')}</ul>`
+}
+
+function parityBlock(p) {
+  const changed = p.changed || [], lost = p.lost || []
+  return `<div class="grid2">
+    <div class="box">
+      <h3>Перенесено без изменений — ${p.kept ?? '—'}</h3>
+      <p class="muted" style="margin:0">${esc(p.keptNote || 'блоки, действия и тексты исходника')}</p>
+    </div>
+    <div class="box">
+      <h3>Изменено осознанно — ${changed.length}</h3>
+      ${changed.length ? `<ul>${changed.map((c) => `<li>${esc(c.what)} <span class="muted">— ${esc(c.why)}</span></li>`).join('')}</ul>`
+        : '<p class="muted" style="margin:0">ничего</p>'}
+    </div>
+    ${lost.length ? `<div class="box" style="border-color:var(--danger);grid-column:1/-1">
+      <h3 class="open">Потеряно — ${lost.length}</h3>
+      <ul>${lost.map((c) => `<li>${esc(c.what)} <span class="muted">— ${esc(c.why)}</span></li>`).join('')}</ul>
+    </div>` : `<div class="box" style="grid-column:1/-1">
+      <h3>Потеряно — 0</h3>
+      <p class="muted" style="margin:0">каждый элемент исходника нашёлся в результате</p>
+    </div>`}
+  </div>`
+}
+
+function screenBlock(x) {
+  const tasks = x.tasks || [], done = tasks.filter((t) => t.state === 'done').length
+  const hasDetail = tasks.length || x.parity || x.review
+  const head = `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;flex:1 1 auto">
+      <b>${esc(x.name)}</b>
+      ${x.state === 'done' ? '<span class="tag ok">готов</span>'
+        : x.state === 'wip' ? '<span class="tag ask">в работе</span>' : '<span class="tag">ждёт</span>'}
+      ${tasks.length ? `<span class="muted">задачи ${done}/${tasks.length}</span>` : ''}
+      ${x.parity && (x.parity.lost || []).length ? `<span class="tag bad">потеряно ${(x.parity.lost).length}</span>` : ''}
+      ${x.note ? `<span class="muted">${esc(x.note)}</span>` : ''}
+    </div>
+    <span style="display:flex;gap:10px;flex:none">
+      ${link(x.url, 'наш')}${link(x.sourceUrl, 'исходник')}
+    </span>`
+
+  if (!hasDetail) return `<div style="display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)">${head}</div>`
+
+  return `<details data-key="${esc(x.name)}"><summary style="justify-content:space-between">${head}</summary>
+    <div class="det-body">
+      ${tasks.length ? `<div><h3 style="margin-bottom:4px">Поставленные задачи</h3>${taskRows(tasks)}</div>` : ''}
+      ${x.parity ? `<div><h3 style="margin-bottom:6px">Сверка с исходником</h3>${parityBlock(x.parity)}</div>` : ''}
+      ${x.review ? `<div><h3 style="margin-bottom:4px">Ревью${x.review.by ? ` — ${esc(x.review.by)}` : ''}</h3>
+        <p class="note" style="margin:0">${x.review.verdict === 'issues' ? '<b class="ask">с замечаниями. </b>' : '<b class="fixed">чисто. </b>'}${esc(x.review.text || '')}</p></div>` : ''}
+      ${x.checked ? `<p class="muted" style="margin:0">Проверено: ${esc(x.checked)}</p>` : ''}
+    </div>
+  </details>`
+}
+
+/* Перерисовка стоит дорого не в тактах, а в человеке: она закрывает то, что
+   он раскрыл, и сбрасывает прокрутку. Поэтому — только при реальной смене
+   состояния, и с возвратом раскрытого и позиции. Первая версия этого не
+   делала: раз в десять секунд страница уезжала под курсором. */
+let lastJSON = null
+
+function render(force) {
   const s = window.STATE
   const app = document.getElementById('app')
   if (!s) { app.innerHTML = '<p class="empty">Состояние ещё не записано. Автопилот создаст его на этапе «Приборы».</p>'; return }
 
+  const json = JSON.stringify(s)
+  if (!force && json === lastJSON) return
+  lastJSON = json
+
+  const open = new Set([...app.querySelectorAll('details[open]')].map((d) => d.dataset.key))
+  const y = window.scrollY
+
   const screens = s.screens || [], defects = s.defects || [], questions = s.questions || []
-  const recs = s.recommendations || []
+  const recs = s.recommendations || [], crew = s.crew || []
   const done = screens.filter((x) => x.state === 'done').length
   const fixed = defects.filter((d) => d.fixed).length
   const openQ = questions.filter((q) => !q.answered)
+  const openRecs = recs.filter((r) => r.status === 'open')
+  const lost = screens.reduce((n, x) => n + ((x.parity && x.parity.lost) || []).length, 0)
+  const L = s.links || {}
 
   app.innerHTML = `
     <header class="row" style="justify-content:space-between">
       <div>
         <h1>${esc(s.run || 'Прогон')}</h1>
-        <p class="muted" style="margin:6px 0 0">
-          обновлён ${ago(s.updatedAt)}${s.finishedAt ? ' · сдан' : ''}
-        </p>
+        <p class="muted" style="margin:6px 0 0">обновлён ${ago(s.updatedAt)}${s.finishedAt ? ' · сдан' : ''}</p>
       </div>
       <div class="row">
-        <span class="chip">${esc(s.mode || 'ручной')}</span>
-        ${s.source ? `<span class="chip">${esc(s.source)}</span>` : ''}
+        <span class="chip">режим: ${esc(s.mode || 'ручной')}</span>
+        ${s.source ? `<span class="chip">вход: ${esc(s.source)}</span>` : ''}
         ${s.system ? `<span class="chip">система: ${esc(s.system)}</span>` : ''}
       </div>
     </header>
 
-    <div class="stages">${STAGES.map(([id, name]) => {
-      const st = (s.stages || {})[id] || 'pending'
-      return `<span class="st ${st}"><span class="dot"></span><b>${name}</b></span>`
-    }).join('')}</div>
+    <nav class="rail" aria-label="Этапы прогона">${STAGES.map(([id, name]) => {
+      const st = stageOf(s, id)
+      return `<a class="st ${st.state}" href="#${id}"><span class="dot"></span>${name}</a>`
+    }).join('')}</nav>
 
-    ${(s.links && (s.links.prototype || s.links.artifact)) ? `<div class="row">
-      ${s.links.prototype ? `<a href="${esc(s.links.prototype)}" target="_blank">Прототип →</a>` : ''}
-      ${s.links.artifact ? `<a href="${esc(s.links.artifact)}" target="_blank">Артефакт →</a>` : ''}
-    </div>` : ''}
-
-    ${openQ.length ? `<section class="card">
-      <h2 class="ask">Ждут ответа — ${openQ.length}</h2>
-      <ul>${openQ.map((q) => `<li>${esc(q.text)}</li>`).join('')}</ul>
+    ${(L.prototype || L.system || L.artifact || L.source) ? `<section id="ship" aria-labelledby="links-h">
+      <h2 id="links-h">Что посмотреть</h2>
+      <p class="lede">Результат, система, по которой он собран, и исходник — чтобы сравнивать, а не верить на слово.</p>
+      <div class="links">
+        ${L.prototype ? `<a class="link-card" href="${esc(L.prototype)}" target="_blank" rel="noopener"><b>Прототип →</b><span>то, что собрано</span></a>` : ''}
+        ${L.system ? `<a class="link-card" href="${esc(L.system)}" target="_blank" rel="noopener"><b>Дизайн-система →</b><span>токены и компоненты вживую</span></a>` : ''}
+        ${L.artifact ? `<a class="link-card" href="${esc(L.artifact)}" target="_blank" rel="noopener"><b>Артефакт →</b><span>ссылка, которую можно послать</span></a>` : ''}
+        ${L.source ? `<a class="link-card" href="${esc(L.source)}" target="_blank" rel="noopener"><b>Исходник →</b><span>от чего отталкивались</span></a>` : ''}
+      </div>
     </section>` : ''}
 
-    <section class="card">
-      <h2>Экраны — ${done} из ${screens.length}</h2>
-      ${screens.length ? `<table>
-        <thead><tr><th>Экран</th><th>Состояние</th><th>Проверен</th><th>Заметка</th></tr></thead>
-        <tbody>${screens.map((x) => `<tr>
-          <td>${esc(x.name)}</td>
-          <td>${x.state === 'done' ? '<span class="fixed">готов</span>'
-              : x.state === 'wip' ? 'в работе' : '<span class="muted">ждёт</span>'}</td>
-          <td class="num">${esc(x.checked || '—')}</td>
-          <td class="muted">${esc(x.note || '')}</td>
+    ${openQ.length ? `<section id="questions" aria-labelledby="q-h">
+      <h2 id="q-h" class="ask">Ждёт вашего ответа — ${openQ.length}</h2>
+      <p class="lede">Работа на этом не стоит: пока ответа нет, сделано так, как написано в «принято по умолчанию». Ответ отменит допущение.</p>
+      <table>
+        <thead><tr><th>Вопрос</th><th>Где</th><th>Принято по умолчанию</th></tr></thead>
+        <tbody>${openQ.map((q) => `<tr>
+          <td>${esc(q.text)}</td>
+          <td class="muted">${esc(q.where || '—')}</td>
+          <td class="muted">${esc(q.assumed || 'ничего — место помечено как незаполненное')}</td>
         </tr>`).join('')}</tbody>
-      </table>` : '<p class="empty">План ещё не составлен.</p>'}
+      </table>
+    </section>` : ''}
+
+    <section id="intake" aria-labelledby="stages-h">
+      <h2 id="stages-h">Ход прогона</h2>
+      <p class="lede">Что произошло на каждом этапе — одной строкой.</p>
+      <div class="stage-list">${STAGES.map(([id, name, hint]) => {
+        const st = stageOf(s, id)
+        return `<div class="stage-row ${st.state}" id="${id === 'intake' ? 'stage-intake' : id}">
+          <span class="dot" style="${st.state === 'done' ? 'background:var(--ok)' : st.state === 'active' ? 'background:var(--accent)' : ''}"></span>
+          <b>${name}</b>
+          <span>${st.note ? esc(st.note) : `<span class="muted">${esc(hint)}</span>`}</span>
+        </div>`
+      }).join('')}</div>
     </section>
 
-    ${recs.length ? `<section class="card">
-      <h2>Найдено вне объёма — ${recs.filter((r) => r.status === 'open').length} без ответа</h2>
+    ${crew.length ? `<section id="crew" aria-labelledby="crew-h">
+      <h2 id="crew-h">Кто работал</h2>
+      <p class="lede">${esc(s.crewNote || 'Роль, модель и что ей поручено. Механическое уходит дешёвой модели: дело не в цене, а в контексте — дамп по двадцати экранам не должен оседать там, где принимаются решения.')}</p>
+      <table>
+        <thead><tr><th>Роль</th><th>Модель</th><th>Что делает</th><th>Как шло</th><th>Заданий</th></tr></thead>
+        <tbody>${crew.map((c) => `<tr>
+          <td><b>${esc(c.role)}</b></td>
+          <td class="num"><span class="tag">${esc(c.model)}</span></td>
+          <td class="muted">${esc(c.does || '')}</td>
+          <td class="muted">${esc(c.how || '')}</td>
+          <td class="num">${c.runs === 0 ? '<span class="muted">не запускалась</span>' : esc(String(c.runs ?? '—'))}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </section>` : ''}
+
+    <section id="work" aria-labelledby="screens-h">
+      <h2 id="screens-h">Экраны — ${done} из ${screens.length}${lost ? ` · потеряно элементов: ${lost}` : ''}</h2>
+      <p class="lede">Разверните экран, чтобы увидеть поставленные задачи, сверку с исходником и вердикт ревью.</p>
+      ${screens.length ? screens.map(screenBlock).join('') : '<p class="empty">План ещё не составлен.</p>'}
+    </section>
+
+    <section id="verify" aria-labelledby="def-h">
+      <h2 id="def-h">Дефекты — ${fixed} из ${defects.length} починено</h2>
+      <p class="lede">Отказы доступности с числом и явные поломки. Чинятся без отдельного согласования: это брак, а не решение.</p>
+      ${defects.length ? `<ul>${defects.map((d) => `<li>
+        <span class="${d.fixed ? 'fixed' : 'open'}">${d.fixed ? '✓' : '•'}</span> ${esc(d.text)}
+      </li>`).join('')}</ul>` : '<p class="empty">Разбор ещё не проведён.</p>'}
+    </section>
+
+    ${recs.length ? `<section id="plan" aria-labelledby="rec-h">
+      <h2 id="rec-h">Найдено вне объёма — ${openRecs.length} без ответа</h2>
+      <p class="lede">Рамка работы это не отменяет: то, что не чинится в согласованном объёме, оформляется фактом, ценой и предложением — решаете вы.</p>
       <table>
         <thead><tr><th>Что</th><th>Чего стоит</th><th>Предложение</th><th>Решение</th></tr></thead>
         <tbody>${recs.map((r) => `<tr>
           <td>${esc(r.text)}</td>
           <td class="muted">${esc(r.cost || '')}</td>
           <td class="muted">${esc(r.proposal || '')}</td>
-          <td class="num">${r.status === 'accepted' ? '<span class="fixed">взято в работу</span>'
-            : r.status === 'declined' ? '<span class="muted">отклонено</span>'
-            : '<span class="ask">ждёт</span>'}</td>
+          <td class="num">${r.status === 'accepted' ? '<span class="tag ok">взято в работу</span>'
+            : r.status === 'declined' ? '<span class="tag">отклонено</span>'
+            : '<span class="tag ask">ждёт</span>'}</td>
         </tr>`).join('')}</tbody>
       </table>
     </section>` : ''}
 
-    <section class="card">
-      <h2>Дефекты — ${fixed} из ${defects.length} починено</h2>
-      ${defects.length ? `<ul>${defects.map((d) => `<li>
-        <span class="${d.fixed ? 'fixed' : 'open'}">${d.fixed ? '✓' : '•'}</span> ${esc(d.text)}
-      </li>`).join('')}</ul>` : '<p class="empty">Разбор ещё не проведён.</p>'}
-    </section>
+    ${s.discovery ? `<section id="discovery" aria-labelledby="disc-h">
+      <h2 id="disc-h">Инвентарь исходника</h2>
+      <p class="lede">Список того, что есть на входе. Сверка результата идёт по нему, поэтому «забыли иконку» перестаёт быть вопросом внимательности.</p>
+      <div class="grid2">${(s.discovery.blocks || []).map((b) => `<div class="box">
+        <h3>${esc(b.name)}</h3>
+        <ul>${(b.items || []).map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+      </div>`).join('')}</div>
+      ${s.discovery.note ? `<p class="note" style="margin:12px 0 0">${esc(s.discovery.note)}</p>` : ''}
+    </section>` : ''}
 
-    <p class="muted">Файл: .designpilot/state.js · страница обновляется сама каждые 10 секунд</p>
+    <p class="muted">Файл состояния: .designpilot/state.js · страница перечитывает его каждые 10 секунд</p>
   `
+
+  app.querySelectorAll('details').forEach((d) => { if (open.has(d.dataset.key)) d.open = true })
+  if (y) window.scrollTo({ top: y, behavior: 'auto' })
 }
 
-render()
+render(true)
 setInterval(() => {
   const s = document.createElement('script')
   s.src = 'state.js?t=' + Date.now()
