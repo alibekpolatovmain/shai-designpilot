@@ -182,6 +182,13 @@
   .link-card b { color: var(--accent); font-size: 13px; font-weight: 600 }
   .link-card span { color: var(--muted); font-size: 12px }
   .ask-bar { border: 1px solid var(--warn); border-radius: 12px; background: var(--warn-quiet); padding: 14px 16px }
+  /* Цель — первое, что читают, и то, что уходит в каждое задание агенту */
+  .goal { border: 1px solid var(--accent-line); border-radius: 12px; background: var(--accent-quiet);
+          padding: 14px 16px; display: flex; flex-direction: column; gap: 6px }
+  .goal .txt { font-size: 15px; line-height: 22px; font-weight: 600 }
+  .goal dl { margin: 4px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px }
+  .goal dt { color: var(--muted); font-size: 12px; font-weight: 600; padding-top: 1px }
+  .goal dd { margin: 0; color: var(--soft) }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
 </style>
 
@@ -318,9 +325,9 @@ function stageBody(id, s) {
   const L = s.links || {}, d = s.discovery || null, imp = s.improvements || []
 
   if (id === 'intake') return `
-    ${s.scope ? `<div><h3>Рамка работы</h3><p style="margin:4px 0 0">${esc(s.scope)}</p></div>` : ''}
-    ${s.offLimits ? `<div><h3>Не трогаем</h3><p style="margin:4px 0 0">${esc(s.offLimits)}</p></div>` : ''}
-    ${s.source ? `<div><h3>Вход</h3><p style="margin:4px 0 0">${esc(s.source)}</p></div>` : ''}`
+    ${s.source ? `<div><h3>Вход</h3><p style="margin:4px 0 0">${esc(s.source)}</p></div>` : ''}
+    ${s.intakeNote ? `<p class="note" style="margin:0">${esc(s.intakeNote)}</p>` : ''}
+    <p class="muted" style="margin:0">Цель и рамка — наверху страницы: они нужны раньше подробностей.</p>`
 
   if (id === 'discovery') return d ? `
     <div><h3>Инвентарь исходника</h3>
@@ -368,6 +375,15 @@ function stageBody(id, s) {
       <tr><td><b>Приёмка</b></td><td class="muted">контролы, которые ничего не делают, и надписи, переписанные молча</td><td class="num"><span class="tag">руки</span></td></tr>
     </tbody></table>
     <p class="note" style="margin:10px 0 0">Первые три слоя смотрят. Ни один не нажимает — поэтому четвёртый и появился.</p></div>
+    ${s.qaReport ? `<div><h3>Приёмка руками — ${s.qaReport.checked} контролов, ${s.qaReport.dead} мёртвых</h3>
+      ${s.qaReport.note ? `<p class="note" style="margin:6px 0 10px">${esc(s.qaReport.note)}</p>` : ''}
+      <table><thead><tr><th>Что это</th><th>Контрол</th><th>Что происходит</th></tr></thead>
+      <tbody>${(s.qaReport.rows || []).map((r) => `<tr>
+        <td class="num"><span class="tag ${r.kind === 'Поломка' ? 'bad' : 'ask'}">${esc(r.kind)}</span></td>
+        <td>${esc(r.what)}</td><td class="muted">${esc(r.detail)}</td></tr>`).join('')}</tbody></table>
+      ${s.qaReport.alive ? `<p class="muted" style="margin:10px 0 0"><b class="fixed">Живое:</b> ${esc(s.qaReport.alive)}</p>` : ''}
+      ${s.qaReport.keyboard ? `<p class="muted" style="margin:4px 0 0"><b class="fixed">Клавиатура:</b> ${esc(s.qaReport.keyboard)}</p>` : ''}
+    </div>` : ''}
     <div><h3>Дефекты — ${fixed} из ${defects.length} починено</h3>
       ${defects.length ? `<ul style="margin-top:6px">${defects.map((x) => `<li>
         <span class="${x.fixed ? 'fixed' : 'open'}">${x.fixed ? '✓' : '•'}</span> ${esc(x.text)}</li>`).join('')}</ul>`
@@ -451,6 +467,17 @@ function render(force) {
       const st = stageOf(s, id)
       return `<button class="st ${st.state}" type="button" data-go="${id}"><span class="dot"></span>${name}</button>`
     }).join('')}</nav>
+
+    ${s.goal ? `<div class="goal">
+      <h3>Цель прогона</h3>
+      <p class="txt" style="margin:0">${esc(s.goal)}</p>
+      <dl>
+        ${s.task ? `<dt>Задача сейчас</dt><dd>${esc(s.task)}</dd>` : ''}
+        ${s.scope ? `<dt>Рамка</dt><dd>${esc(s.scope)}</dd>` : ''}
+        ${s.offLimits ? `<dt>Не трогаем</dt><dd>${esc(s.offLimits)}</dd>` : ''}
+      </dl>
+      <p class="muted" style="margin:2px 0 0">Эта же цель уходит дословно в каждое задание агенту: без неё роль работает добросовестно и мимо.</p>
+    </div>` : ''}
 
     ${openQ.length ? `<div class="ask-bar">
       <h2 class="ask">Ждёт вашего ответа — ${openQ.length}</h2>
