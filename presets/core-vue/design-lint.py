@@ -18,13 +18,24 @@
 
 Проверять сам линтер подсунутым нарушением, прежде чем верить его «чисто».
 """
+import os
 import re
 import sys
 import pathlib
 
-LANDING_TOKENS = pathlib.Path('assets/css/main.css')
-VUE_TOKENS = pathlib.Path('webapp/src/design/tokens.css')
-VUE_DIR = pathlib.Path('webapp/src')
+# Пути задаются снаружи: линтер переезжает в чужой проект вместе с набором, и
+# зашитые `webapp/src` там означают падение на первом же запуске.
+#
+#   python3 design-lint.py                       — значения по умолчанию
+#   python3 design-lint.py src/design/tokens.css src
+#   DESIGN_LINT_SOURCE=styles/brand.css python3 design-lint.py
+#
+# Источник правды (первый аргумент этой пары) — файл, с которым сверяется
+# палитра: у нас это токены лендинга. Его может не быть вовсе: тогда сверка
+# словаря пропускается, а проверка классов работает как обычно.
+VUE_TOKENS = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else 'src/design/tokens.css')
+VUE_DIR = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else 'src')
+LANDING_TOKENS = pathlib.Path(os.environ.get('DESIGN_LINT_SOURCE', 'assets/css/main.css'))
 
 # ─────────────────────── Единство словаря ───────────────────────
 
