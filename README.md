@@ -29,12 +29,23 @@ presets/
 
 ## Установка
 
+В корне проекта:
+
+```bash
+npx skills add https://github.com/alibekpolatovmain/shai-designpilot --skill designpilot
+```
+
+Ставит в `.agents/skills/designpilot` и делает симлинк из `.claude/skills`,
+так что навык видят и Claude Code, и другие агенты. Приватный репозиторий
+тоже работает — по вашей git-авторизации. Флаг `-g` ставит глобально,
+`--copy` — копией вместо симлинка.
+
+Без интернета или вручную:
+
 ```bash
 git clone https://github.com/alibekpolatovmain/shai-designpilot.git
 cd shai-designpilot && ./install.sh
 ```
-
-Или вручную: `cp -r designpilot ~/.claude/skills/`.
 
 Навык самодостаточен: внешних зависимостей у самого навыка нет, нужен только
 Python 3 для дашборда (он есть в macOS и Linux из коробки).
