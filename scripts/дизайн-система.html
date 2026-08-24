@@ -153,7 +153,16 @@
                    font: 600 12px/18px inherit; color: var(--muted) }
   .themer button[aria-pressed=true] { background: var(--raised); color: var(--text); box-shadow: 0 1px 2px var(--shade-xs) }
   .themer button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+  .pulse { width: 10px; height: 10px; border-radius: 999px; background: var(--accent); flex: none;
+           box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 60%, transparent); animation: ring 2s cubic-bezier(.22,1,.36,1) infinite }
+  @keyframes ring { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 55%, transparent) }
+                    70% { box-shadow: 0 0 0 8px transparent } 100% { box-shadow: 0 0 0 0 transparent } }
+  .bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; flex: none }
+  .bars i { width: 3px; border-radius: 2px; background: var(--muted); animation: wave 1.1s ease-in-out infinite }
+  .bars i:nth-child(1) { height: 6px; animation-delay: 0s } .bars i:nth-child(2) { height: 12px; animation-delay: .12s }
+  .bars i:nth-child(3) { height: 8px; animation-delay: .24s } .bars i:nth-child(4) { height: 14px; animation-delay: .36s }
+  @keyframes wave { 0%, 100% { transform: scaleY(.5) } 50% { transform: scaleY(1) } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
 </style>
 
 <div class="wrap">
@@ -321,6 +330,40 @@
     </table>
     <p class="cap" style="margin-top:12px"><b>UiTabs без UiTabsPanel не существует.</b> Полоска вкладок без панелей
     проходит любой линтер и остаётся ложью: если панелей нет — это UiToggleGroup.</p>
+  </div>
+</section>
+
+<section>
+  <div><h2>Состояния: цвет отвечает на «нужен ли я»</h2>
+  <p class="sub">Соблазн — красить каждое состояние своим цветом, и через месяц цвета не значат ничего.
+  Правило: цветом отличается не одно состояние от другого, а <b>«требует человека» от «идёт само»</b>.
+  Красить нормальное здоровое ожидание предупреждающим цветом нельзя — человек привыкнет, что оранжевый
+  ничего не значит, и пропустит настоящую оранжевую строку.</p></div>
+  <div class="card stack">
+    <div class="row" style="gap:12px;background:var(--accent-quiet);border:1px solid var(--accent-line);border-radius:12px;padding:10px 12px">
+      <span class="pulse" aria-hidden="true"></span>
+      <b>Синхронизация по проекту</b>
+      <span style="color:var(--accent);font-size:12px">Идёт прямо сейчас — 14 минут</span>
+      <button class="btn outline sm" style="margin-left:auto">Остановить запись</button>
+    </div>
+    <div class="row" style="gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
+      <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <b>Планёрка отдела продаж</b>
+      <span class="cap">Расшифровываем и собираем протокол — обычно 2–4 минуты</span>
+      <button class="btn outline sm" style="margin-left:auto">Остановить обработку</button>
+    </div>
+    <div class="row" style="gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
+      <span class="badge warn"><i class="dot"></i>Не пустили</span>
+      <b>Согласование бюджета</b>
+      <span class="cap">Организатор не впустил бота в звонок — записи нет</span>
+    </div>
+    <div class="row" style="gap:12px;border:1px solid var(--line);border-radius:12px;padding:10px 12px">
+      <span class="badge bad"><i class="dot"></i>Сбой</span>
+      <b>Интервью с кандидатом</b>
+      <span class="cap">Обработка прервалась на 12-й минуте, аудио сохранено</span>
+    </div>
+    <p class="cap">Живое показывается движением, а не только цветом: цвет без движения не говорит «сейчас».
+    Кнопка называет объект — «Остановить запись», а не «Остановить».</p>
   </div>
 </section>
 
