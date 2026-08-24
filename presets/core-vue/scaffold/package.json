@@ -1,0 +1,20 @@
+{
+  "name": "prototype",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "dependencies": {
+    "@fontsource/inter": "^5",
+    "@internationalized/date": "^3",
+    "lucide-vue-next": "^1",
+    "reka-ui": "^2",
+    "vue": "^3.5",
+    "vue-router": "^4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4",
+    "@vitejs/plugin-vue": "^6",
+    "tailwindcss": "^4",
+    "vite": "^7"
+  }
+}

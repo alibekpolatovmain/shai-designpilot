@@ -1,0 +1,128 @@
+/* Базовый слой: то, что браузер рисует сам и что принадлежит системе */
+@layer base {
+  html {
+    scrollbar-color: var(--color-accent-line) transparent;
+    /* Обе схемы объявлены, поэтому light-dark() в токенах работает, а браузер
+       рисует свои поверхности — прокрутку, календарь в поле даты,
+       автозаполнение — в той же теме, что и интерфейс. Явный выбор
+       пользователя переопределяет это на :root[data-theme] в tokens.css. */
+    color-scheme: light dark;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-doc);
+    line-height: 1.6;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+  }
+  /* Браузер рисует у <button> рамку ButtonBorder и серый фон — в системе их нет */
+  button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    cursor: pointer;
+  }
+  h1, h2, h3, h4 {
+    margin: 0;
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+    color: var(--color-strong);
+  }
+  p { margin: 0; }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: var(--p-selection); color: var(--color-strong); }
+  /* Кольцо 2px с отступом 2px. Было 2.5 и 3 — на иконочной кнопке 36px
+     такое кольцо занимало больше места, чем сама кнопка, и читалось как
+     вторая рамка вокруг первой. Двух пикселей хватает и по WCAG 2.4.13:
+     там речь о периметре не тоньше 2px с контрастом 3:1.
+
+     Радиус здесь не задаётся: браузер обводит элемент по его собственному
+     скруглению. Прежняя строка навязывала 6px всему, что получало фокус, —
+     карточка со скруглением 12px на фокусе меняла форму. */
+  :focus-visible {
+    outline: 2px solid var(--p-focus);
+    outline-offset: 2px;
+  }
+  [hidden] { display: none !important; }
+
+  /* Автозаполнение. Chrome заливает поле собственным бледно-сиреневым и
+     перекрашивает текст — поверх любой темы, включая тёмную, где это
+     читается как поломка. Отменить заливку нельзя, но можно перекрыть её
+     внутренней тенью в тысячу пикселей: приём старый и единственный
+     работающий. Цвет текста задаётся через -webkit-text-fill-color, потому
+     что обычный color в этом состоянии игнорируется.
+
+     Задержка перехода в сто тысяч секунд — не шутка, а способ пережить
+     момент, когда браузер перекрашивает поле после подстановки. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-text);
+    -webkit-box-shadow: inset 0 0 0 1000px var(--color-raised);
+    caret-color: var(--color-text);
+    transition: background-color 100000s ease-in-out 0s;
+  }
+}
+
+/* Safari на iOS увеличивает страницу, когда фокус попадает в поле с кеглем
+   меньше 16px, и обратно её не возвращает. Лечится не запретом масштаба
+   (это отняло бы у человека зум), а кеглем: на узких экранах ввод — 16px.
+   Высоты контролов там уже подняты до 44px тем же медиазапросом. */
+@media (max-width: 900px) {
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+  }
+}
+
+/* Режим высокой контрастности (Windows). Там цвета назначает не сайт, а
+   операционная система, и наши заливки просто исчезают: кнопка без рамки
+   становится текстом, выделенная вкладка — обычной. Возвращаем рамку тому,
+   что должно читаться контролом, и берём системные цвета вместо своих.
+
+   Это не про экзотику: в закрытых контурах и госструктурах — а это ровно
+   аудитория Enterprise — режим включён у части людей постоянно. */
+@media (forced-colors: active) {
+  button,
+  [role="button"],
+  [role="checkbox"],
+  [role="menuitem"],
+  input,
+  textarea,
+  select {
+    border: 1px solid ButtonBorder;
+  }
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  /* Иконки рисуются штрихом currentColor и в этом режиме исчезают вместе с
+     ним, если цвет задан заливкой */
+  svg {
+    forced-color-adjust: auto;
+  }
+}
+
+/* Непрерывные петли гасим полностью, переходы укорачиваем до неощутимых.
+   Глухое «выключить всё» стёрло бы обратную связь: раскрытие меню и поворот
+   шеврона — единственные сигналы, что нажатие сработало. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 80ms !important;
+    scroll-behavior: auto !important;
+  }
+}

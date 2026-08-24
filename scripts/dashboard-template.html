@@ -1,0 +1,168 @@
+<meta charset="utf-8" />
+<title>Прогон автопилота</title>
+<!-- Дашборд дизайн-прогона. Копируется в .designpilot/ один раз и больше не
+     правится: состояние приходит из state.js рядом, а снимок внутри страницы
+     держит sync.py. Поэтому страница показывает данные и открытая файлом,
+     и через месяц, и с мёртвым сервером. -->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fff; --raised: #fff; --surface: #f4f5f7; --line: #e7e9ec;
+    --text: #12292b; --soft: #40524f; --muted: #5e6b6c;
+    --accent: #2f6f66; --warn: #996129; --danger: #ab4b45; --ok: #2f6f66;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme=light]) {
+      --bg: #151515; --raised: #1a1a19; --surface: rgba(255,255,255,.05); --line: rgba(255,255,255,.10);
+      --text: #f0efec; --soft: #c3c2b7; --muted: #95938c;
+      --accent: #69a69c; --warn: #db9300; --danger: #ec7e7e; --ok: #69a69c;
+    }
+  }
+  * { box-sizing: border-box }
+  body { margin: 0; background: var(--bg); color: var(--text); padding: 32px 24px 64px;
+         font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         -webkit-font-smoothing: antialiased }
+  .wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px }
+  h1 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -.03em; font-weight: 600 }
+  h2 { margin: 0 0 10px; font-size: 16px; line-height: 24px; letter-spacing: -.02em; font-weight: 600 }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+          border-radius: 999px; background: var(--surface); color: var(--soft); font-size: 12px; font-weight: 600 }
+  .muted { color: var(--muted); font-size: 12px }
+  .card { border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 16px }
+  table { width: 100%; border-collapse: collapse; font-size: 14px }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 6px 8px }
+  td { padding: 8px; border-top: 1px solid var(--line); vertical-align: top }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted) }
+  ul { margin: 0; padding-left: 18px } li { margin: 4px 0 }
+  .stages { display: flex; flex-wrap: wrap; gap: 6px }
+  .st { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
+        border: 1px solid var(--line); font-size: 13px; background: var(--raised) }
+  .st b { font-weight: 600 }
+  .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line); flex: none }
+  .st.done .dot { background: var(--ok) } .st.done { color: var(--soft) }
+  .st.active { border-color: var(--accent); color: var(--text) }
+  .st.active .dot { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent) }
+  .fixed { color: var(--ok) } .open { color: var(--danger) } .ask { color: var(--warn) }
+  a { color: var(--accent); font-weight: 600; text-decoration: none }
+  a:hover { text-decoration: underline; text-underline-offset: 4px }
+  .empty { color: var(--muted); font-size: 13px }
+</style>
+
+<script>/*STATE-BEGIN*/window.STATE=null;/*STATE-END*/</script>
+<script src="state.js"></script>
+
+<div class="wrap" id="app"></div>
+
+<script>
+const STAGES = [
+  ['intake', 'Приём'], ['discovery', 'Разбор'], ['system', 'Система'], ['plan', 'План'],
+  ['work', 'Работа'], ['verify', 'Проверка'], ['ship', 'Сдача'],
+]
+const POLL = 10000
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 10, b = Math.abs(n) % 100
+  if (a === 1 && b !== 11) return one
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return few
+  return many
+}
+const ago = (iso) => {
+  if (!iso) return '—'
+  const s = Math.max(0, (Date.now() - new Date(iso)) / 1000)
+  if (s < 60) return 'только что'
+  const m = Math.floor(s / 60); if (m < 60) return `${m} ${plural(m, 'минуту', 'минуты', 'минут')} назад`
+  const h = Math.floor(m / 60); if (h < 24) return `${h} ${plural(h, 'час', 'часа', 'часов')} назад`
+  const d = Math.floor(h / 24); return `${d} ${plural(d, 'день', 'дня', 'дней')} назад`
+}
+
+function render() {
+  const s = window.STATE
+  const app = document.getElementById('app')
+  if (!s) { app.innerHTML = '<p class="empty">Состояние ещё не записано. Автопилот создаст его на этапе «Приборы».</p>'; return }
+
+  const screens = s.screens || [], defects = s.defects || [], questions = s.questions || []
+  const recs = s.recommendations || []
+  const done = screens.filter((x) => x.state === 'done').length
+  const fixed = defects.filter((d) => d.fixed).length
+  const openQ = questions.filter((q) => !q.answered)
+
+  app.innerHTML = `
+    <header class="row" style="justify-content:space-between">
+      <div>
+        <h1>${esc(s.run || 'Прогон')}</h1>
+        <p class="muted" style="margin:6px 0 0">
+          обновлён ${ago(s.updatedAt)}${s.finishedAt ? ' · сдан' : ''}
+        </p>
+      </div>
+      <div class="row">
+        <span class="chip">${esc(s.mode || 'ручной')}</span>
+        ${s.source ? `<span class="chip">${esc(s.source)}</span>` : ''}
+        ${s.system ? `<span class="chip">система: ${esc(s.system)}</span>` : ''}
+      </div>
+    </header>
+
+    <div class="stages">${STAGES.map(([id, name]) => {
+      const st = (s.stages || {})[id] || 'pending'
+      return `<span class="st ${st}"><span class="dot"></span><b>${name}</b></span>`
+    }).join('')}</div>
+
+    ${(s.links && (s.links.prototype || s.links.artifact)) ? `<div class="row">
+      ${s.links.prototype ? `<a href="${esc(s.links.prototype)}" target="_blank">Прототип →</a>` : ''}
+      ${s.links.artifact ? `<a href="${esc(s.links.artifact)}" target="_blank">Артефакт →</a>` : ''}
+    </div>` : ''}
+
+    ${openQ.length ? `<section class="card">
+      <h2 class="ask">Ждут ответа — ${openQ.length}</h2>
+      <ul>${openQ.map((q) => `<li>${esc(q.text)}</li>`).join('')}</ul>
+    </section>` : ''}
+
+    <section class="card">
+      <h2>Экраны — ${done} из ${screens.length}</h2>
+      ${screens.length ? `<table>
+        <thead><tr><th>Экран</th><th>Состояние</th><th>Проверен</th><th>Заметка</th></tr></thead>
+        <tbody>${screens.map((x) => `<tr>
+          <td>${esc(x.name)}</td>
+          <td>${x.state === 'done' ? '<span class="fixed">готов</span>'
+              : x.state === 'wip' ? 'в работе' : '<span class="muted">ждёт</span>'}</td>
+          <td class="num">${esc(x.checked || '—')}</td>
+          <td class="muted">${esc(x.note || '')}</td>
+        </tr>`).join('')}</tbody>
+      </table>` : '<p class="empty">План ещё не составлен.</p>'}
+    </section>
+
+    ${recs.length ? `<section class="card">
+      <h2>Найдено вне объёма — ${recs.filter((r) => r.status === 'open').length} без ответа</h2>
+      <table>
+        <thead><tr><th>Что</th><th>Чего стоит</th><th>Предложение</th><th>Решение</th></tr></thead>
+        <tbody>${recs.map((r) => `<tr>
+          <td>${esc(r.text)}</td>
+          <td class="muted">${esc(r.cost || '')}</td>
+          <td class="muted">${esc(r.proposal || '')}</td>
+          <td class="num">${r.status === 'accepted' ? '<span class="fixed">взято в работу</span>'
+            : r.status === 'declined' ? '<span class="muted">отклонено</span>'
+            : '<span class="ask">ждёт</span>'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </section>` : ''}
+
+    <section class="card">
+      <h2>Дефекты — ${fixed} из ${defects.length} починено</h2>
+      ${defects.length ? `<ul>${defects.map((d) => `<li>
+        <span class="${d.fixed ? 'fixed' : 'open'}">${d.fixed ? '✓' : '•'}</span> ${esc(d.text)}
+      </li>`).join('')}</ul>` : '<p class="empty">Разбор ещё не проведён.</p>'}
+    </section>
+
+    <p class="muted">Файл: .designpilot/state.js · страница обновляется сама каждые 10 секунд</p>
+  `
+}
+
+render()
+setInterval(() => {
+  const s = document.createElement('script')
+  s.src = 'state.js?t=' + Date.now()
+  s.onload = () => { render(); s.remove() }
+  s.onerror = () => s.remove()
+  document.body.appendChild(s)
+}, POLL)
+</script>
