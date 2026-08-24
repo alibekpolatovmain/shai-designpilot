@@ -127,6 +127,7 @@
   .ev:first-child { border-top: 0 }
   .ev .pin { width: 7px; height: 7px; border-radius: 999px; background: var(--line-strong); margin-top: 6px }
   .ev.live .pin { background: var(--accent); animation: pulse 2s cubic-bezier(.22,1,.36,1) infinite }
+  .ev.back .what, .ev.back .stage { color: var(--muted) }
   .ev .stage { font-size: 12px; color: var(--muted); font-weight: 600 }
   .ev .what { font-size: 13px }
   .ev .what b { font-weight: 600 }
@@ -238,9 +239,13 @@ const HUMAN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>`
 
+/* `runs` — число РЕАЛЬНО запущенных отдельных заданий, а не объём работы.
+   Роль, которую главный контекст вёл непрерывно, заданиями не считается: у
+   неё пишется «вёл сам». Прошлая версия ставила «заданий 11», имея в виду
+   одиннадцать экранов, — число выглядело учётом и было пересказом. */
 function mateCard(c) {
   const st = c.state || (c.runs ? 'done' : 'idle')
-  const solo = String(c.model || '').includes('главн')
+  const solo = c.solo !== undefined ? c.solo : String(c.model || '').includes('главн')
   const label = { working: 'работает', done: 'отработала', idle: 'ещё не вступала' }[st]
   return `<div class="mate ${st}">
     <span class="face">${solo ? HUMAN : ROBOT}</span>
@@ -252,8 +257,9 @@ function mateCard(c) {
         ${st === 'working'
           ? `<span class="ask">${esc(label)}</span><span class="work-dots"><i></i><i></i><i></i></span>`
           : esc(label)}
-        ${c.stage ? ` · вошла на этапе «${esc(STAGE_NAME[c.stage] || c.stage)}»` : ''}
-        ${c.runs ? ` · заданий ${c.runs}` : ''}
+        ${c.stage ? ` · ${st === 'idle' ? 'вступит' : 'вошла'} на этапе «${esc(STAGE_NAME[c.stage] || c.stage)}»` : ''}
+        ${c.runs ? ` · ${c.runs} ${plural(c.runs, 'задание', 'задания', 'заданий')} субагенту`
+          : (solo && st !== 'idle' ? ' · вёл сам, отдельных заданий не было' : '')}
       </span>
     </span>
   </div>`
@@ -331,12 +337,21 @@ function stageBody(id, s) {
     ${L.system ? `<div class="links"><a class="link-card" href="${esc(L.system)}" target="_blank" rel="noopener">
       <b>Открыть систему →</b><span>токены и компоненты вживую</span></a></div>` : ''}`
 
-  if (id === 'plan') return `
+  if (id === 'plan') {
+    /* Колонка «шагов» показывалась даже там, где шаги не записывались, и
+       давала десять прочерков — обещание учёта, которого не было. Теперь
+       число стоит только у экранов, где шаги есть, а про остальные сказано
+       прямо. */
+    const withSteps = screens.filter((x) => (x.tasks || []).length).length
+    return `
     <p class="lede" style="margin:0">${screens.length} ${plural(screens.length, 'экран', 'экрана', 'экранов')} по убыванию цены ошибки.</p>
-    <table><thead><tr><th>Экран</th><th>Шагов</th><th>Заметка</th></tr></thead><tbody>
-      ${screens.map((x) => `<tr><td>${esc(x.name)}</td><td class="num">${(x.tasks || []).length || '—'}</td>
-        <td class="muted">${esc(x.note || '')}</td></tr>`).join('')}
-    </tbody></table>`
+    <table><thead><tr><th>Экран</th><th>Шаги</th><th>Заметка</th></tr></thead><tbody>
+      ${screens.map((x) => { const n = (x.tasks || []).length; return `<tr><td>${esc(x.name)}</td>
+        <td class="num">${n ? `${n} ${plural(n, 'шаг', 'шага', 'шагов')}` : '<span class="muted">не записывались</span>'}</td>
+        <td class="muted">${esc(x.note || '')}</td></tr>` }).join('')}
+    </tbody></table>
+    ${s.planNote && withSteps < screens.length ? `<p class="note" style="margin:0">${esc(s.planNote)}</p>` : ''}`
+  }
 
   if (id === 'work') return screens.length
     ? `<p class="lede" style="margin:0">Разверните экран, чтобы увидеть его шаги, сверку с исходником и вердикт ревью.</p>
@@ -360,7 +375,7 @@ function stageBody(id, s) {
   }
 
   if (id === 'polish') return `
-    <p class="lede" style="margin:0">Кругов два. Второй — после того, как внесены правки первого: правки создают дефекты, а первый проход снимает только верхний слой.</p>
+    <p class="lede" style="margin:0">Кругов два. Второй — после того, как внесены правки первого: правки создают дефекты, а первый проход снимает только верхний слой. Ниже — то, что уже сделано или идёт; предложения без ответа живут отдельной таблицей и здесь не дублируются.</p>
     ${imp.length ? `<div class="steps" style="margin-top:4px">${imp.map(stepRow).join('')}</div>`
       : '<p class="empty" style="margin:0">Проход ещё не запускался.</p>'}
     ${recs.length ? `<div><h3>Найдено вне объёма — ${recs.filter((r) => r.status === 'open').length} без ответа</h3>
@@ -458,12 +473,15 @@ function render(force) {
       <h2>Что происходит</h2>
       <p class="lede">Кто вступил, на каком этапе и с чем вернулся. Последнее — сверху.</p>
       <div class="chron" style="margin-top:10px">${[...log].reverse().slice(0, 12).map((e, i) => `
-        <div class="ev ${i === 0 && !s.finishedAt ? 'live' : ''}">
+        <div class="ev ${i === 0 && !s.finishedAt ? 'live' : ''} ${e.back ? 'back' : ''}">
           <span class="pin"></span>
           <span class="stage">${esc(STAGE_NAME[e.stage] || e.stage || '')}</span>
-          <span class="what"><b>${esc(e.role || '')}</b> ${esc(e.text)}</span>
+          <span class="what"><b>${esc(e.role || '')}</b> ${esc(e.text)}${e.back ? ' <span class="tag">восстановлено</span>' : ''}</span>
         </div>`).join('')}</div>
-      ${log.length > 12 ? `<p class="muted" style="margin:8px 0 0">показаны последние 12 из ${log.length}</p>` : ''}
+      ${log.some((e) => e.back) ? `<p class="muted" style="margin:8px 0 0">
+        Строки с пометкой «восстановлено» написаны задним числом: запись событий появилась позже самих событий.
+        Остальные записаны по факту.</p>` : ''}
+      ${log.length > 12 ? `<p class="muted" style="margin:4px 0 0">показаны последние 12 из ${log.length}</p>` : ''}
     </section>` : ''}
 
     ${steps.length ? `<div class="now">
