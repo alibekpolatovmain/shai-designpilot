@@ -12,50 +12,52 @@
      Контраст страница считает сама, на живых элементах: цифра, посчитанная
      в другом месте и вписанная руками, устаревает молча. -->
 <style>
+/*ПАЛИТРА-НАЧАЛО*/
+  /* Палитра переписана из tokens.css скриптом собрать-галерею.py.
+     Руками не править: правка потеряется при следующем прогоне, а до
+     тех пор галерея будет показывать не ту систему, что в коде. */
   :root {
     color-scheme: light dark;
-    --canvas: #fff; --rail: #fff; --raised: #fff; --surface: #f4f5f7; --surface-2: #eef1f2;
-    --line: #e7e9ec; --line-strong: #d8dcde; --line-control: #848d8e;
-    --text: #12292b; --text-soft: #40524f; --muted: #5e6b6c; --strong: #123437;
-    --inverse: #123437; --on-inverse: #eef4f2; --on-inverse-soft: rgba(238,244,242,.72);
-    --accent: #2f6f66; --accent-hover: #275c54; --on-solid: #fff;
-    --accent-quiet: #f0f7f5; --accent-soft: #e3f0ed; --accent-line: #bfe0d9;
-    --danger: #b8514a; --danger-soft: #fbf1f0; --on-danger-soft: #ab4b45;
-    --warning: #a4682c; --warning-soft: #fdf5ec; --on-warning-soft: #996129;
-    --focus: #3b8a7f;
-    --shade-xs: rgba(18,52,55,.06); --shade-sm: rgba(18,52,55,.06); --shade-sm2: rgba(18,52,55,.05);
-    --shade-md: rgba(18,52,55,.18); --shade-md2: rgba(18,52,55,.12);
+    --canvas: #ffffff; --rail: #ffffff; --raised: #ffffff; --surface: #f4f5f7; --surface-2: #eef1f2;
+    --line: #e7e9ec; --line-strong: #d8dcde; --line-control: #848d8e; --text: #12292b; --text-soft: #40524f;
+    --muted: #5e6b6c; --strong: #123437; --inverse: #123437; --on-inverse: #eef4f2;
+    --on-inverse-soft: rgba(238, 244, 242, 0.72); --accent: #2f6f66; --accent-hover: #275c54;
+    --on-solid: #ffffff; --accent-quiet: #f0f7f5; --accent-soft: #e3f0ed; --accent-line: #bfe0d9;
+    --danger: #b8514a; --danger-soft: #fbf1f0; --on-danger-soft: #ab4b45; --warning: #a4682c;
+    --warning-soft: #fdf5ec; --on-warning-soft: #996129; --focus: #3b8a7f;
+    --shade-xs: rgba(18, 52, 55, 0.06); --shade-sm: rgba(18, 52, 55, 0.06);
+    --shade-sm2: rgba(18, 52, 55, 0.05); --shade-md: rgba(18, 52, 55, 0.18);
+    --shade-md2: rgba(18, 52, 55, 0.12);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme=light]) {
-      --canvas: #151515; --rail: #0b0b0b; --raised: #1a1a19;
-      --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.10);
-      --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.14); --line-control: rgba(255,255,255,.34);
-      --text: #f0efec; --text-soft: #c3c2b7; --muted: #95938c; --strong: #f0efec;
-      --inverse: #fff; --on-inverse: #0b0b0b; --on-inverse-soft: rgba(11,11,11,.66);
-      --accent: #69a69c; --accent-hover: #76b2a8; --on-solid: #06201d;
-      --accent-quiet: rgba(105,166,156,.12); --accent-soft: rgba(105,166,156,.20); --accent-line: rgba(105,166,156,.34);
-      --danger: #ec7e7e; --danger-soft: rgba(236,126,126,.13); --on-danger-soft: #ec7e7e;
-      --warning: #db9300; --warning-soft: rgba(219,147,0,.13); --on-warning-soft: #db9300;
-      --focus: #76b2a8;
-      --shade-xs: rgba(0,0,0,.24); --shade-sm: rgba(0,0,0,.24); --shade-sm2: rgba(0,0,0,.16);
-      --shade-md: rgba(0,0,0,.34); --shade-md2: rgba(0,0,0,.24);
+      --canvas: #151515; --rail: #0b0b0b; --raised: #1a1a19; --surface: rgba(255, 255, 255, 0.05);
+      --surface-2: rgba(255, 255, 255, 0.1); --line: rgba(255, 255, 255, 0.1);
+      --line-strong: rgba(255, 255, 255, 0.14); --line-control: rgba(255, 255, 255, 0.34); --text: #f0efec;
+      --text-soft: #c3c2b7; --muted: #95938c; --strong: #f0efec; --inverse: #ffffff; --on-inverse: #0b0b0b;
+      --on-inverse-soft: rgba(11, 11, 11, 0.66); --accent: #69a69c; --accent-hover: #76b2a8;
+      --on-solid: #06201d; --accent-quiet: rgba(105, 166, 156, 0.12);
+      --accent-soft: rgba(105, 166, 156, 0.2); --accent-line: rgba(105, 166, 156, 0.34); --danger: #ec7e7e;
+      --danger-soft: rgba(236, 126, 126, 0.13); --on-danger-soft: #ec7e7e; --warning: #db9300;
+      --warning-soft: rgba(219, 147, 0, 0.13); --on-warning-soft: #db9300; --focus: #76b2a8;
+      --shade-xs: rgba(0, 0, 0, 0.24); --shade-sm: rgba(0, 0, 0, 0.24); --shade-sm2: rgba(0, 0, 0, 0.16);
+      --shade-md: rgba(0, 0, 0, 0.34); --shade-md2: rgba(0, 0, 0, 0.24);
     }
   }
   :root[data-theme=dark] {
-    --canvas: #151515; --rail: #0b0b0b; --raised: #1a1a19;
-    --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.10);
-    --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.14); --line-control: rgba(255,255,255,.34);
-    --text: #f0efec; --text-soft: #c3c2b7; --muted: #95938c; --strong: #f0efec;
-    --inverse: #fff; --on-inverse: #0b0b0b; --on-inverse-soft: rgba(11,11,11,.66);
-    --accent: #69a69c; --accent-hover: #76b2a8; --on-solid: #06201d;
-    --accent-quiet: rgba(105,166,156,.12); --accent-soft: rgba(105,166,156,.20); --accent-line: rgba(105,166,156,.34);
-    --danger: #ec7e7e; --danger-soft: rgba(236,126,126,.13); --on-danger-soft: #ec7e7e;
-    --warning: #db9300; --warning-soft: rgba(219,147,0,.13); --on-warning-soft: #db9300;
-    --focus: #76b2a8;
-    --shade-xs: rgba(0,0,0,.24); --shade-sm: rgba(0,0,0,.24); --shade-sm2: rgba(0,0,0,.16);
-    --shade-md: rgba(0,0,0,.34); --shade-md2: rgba(0,0,0,.24);
+    --canvas: #151515; --rail: #0b0b0b; --raised: #1a1a19; --surface: rgba(255, 255, 255, 0.05);
+    --surface-2: rgba(255, 255, 255, 0.1); --line: rgba(255, 255, 255, 0.1);
+    --line-strong: rgba(255, 255, 255, 0.14); --line-control: rgba(255, 255, 255, 0.34); --text: #f0efec;
+    --text-soft: #c3c2b7; --muted: #95938c; --strong: #f0efec; --inverse: #ffffff; --on-inverse: #0b0b0b;
+    --on-inverse-soft: rgba(11, 11, 11, 0.66); --accent: #69a69c; --accent-hover: #76b2a8;
+    --on-solid: #06201d; --accent-quiet: rgba(105, 166, 156, 0.12); --accent-soft: rgba(105, 166, 156, 0.2);
+    --accent-line: rgba(105, 166, 156, 0.34); --danger: #ec7e7e; --danger-soft: rgba(236, 126, 126, 0.13);
+    --on-danger-soft: #ec7e7e; --warning: #db9300; --warning-soft: rgba(219, 147, 0, 0.13);
+    --on-warning-soft: #db9300; --focus: #76b2a8; --shade-xs: rgba(0, 0, 0, 0.24);
+    --shade-sm: rgba(0, 0, 0, 0.24); --shade-sm2: rgba(0, 0, 0, 0.16); --shade-md: rgba(0, 0, 0, 0.34);
+    --shade-md2: rgba(0, 0, 0, 0.24);
   }
+  /*ПАЛИТРА-КОНЕЦ*/
 
   * { box-sizing: border-box }
   body { margin: 0; background: var(--canvas); color: var(--text); padding: 32px 20px 80px;
