@@ -103,18 +103,30 @@
     if (clickable) {
       const name = nameOf(el)
       if (!name) out.безымянные.push(`${el.tagName}${role ? `[${role}]` : ''} .${(el.className || '').toString().slice(0, 40)}`)
-      /* растянутая ссылка накрывает всю строку — её бокс меньше цели */
-      const stretched = [...el.querySelectorAll('*')].length === 0 &&
-        (cs.getPropertyValue('--tw-content') || '').length === 0 && el.matches('a') &&
-        S(el, '::after').position === 'absolute'
+      /* Растянутая ссылка накрывает всю строку: её собственный бокс меньше
+         цели, но палец попадает по всей строке. Опознаётся по абсолютному
+         `::after` — и только по нему.
+
+         Первая версия требовала вдобавок, чтобы внутри ссылки не было ни
+         одного элемента. Стоило добавить в заголовок строки точку «не
+         открыто» — и двадцать живых строк списка поехали в «мелкие цели».
+         Лишнее условие в эвристике дороже отсутствующей проверки: отчёт на
+         тридцать ложных находок не читают вовсе. */
+      const stretched = el.matches('a, button') && S(el, '::after').position === 'absolute'
       /* Спрятанное для диктора указателем недоступно вовсе, и мерить его
          как цель нажатия бессмысленно: ссылка «К содержимому» в покое
          обрезана до 1px и раскрывается только на фокусе. Первая версия
          честно писала «24×16» и отправляла чинить то, что не сломано. */
       const srOnly = cs.clipPath === 'inset(50%)' ||
         (cs.position === 'absolute' && cs.overflow === 'hidden' && r.width <= 2 && r.height <= 2)
-      if (!srOnly && (r.width < 24 || r.height < 24)) {
-        (stretched ? out.растянутые : out.мелкиеЦели).push(`${Math.round(r.width)}×${Math.round(r.height)} ${name.slice(0, 28)}`)
+
+      /* Цель нажатия — то, по чему можно попасть, а не сам глиф. Флажок 16×16
+         внутри `<label>` с полями активируется кликом по всей подписи, и
+         мерить надо её. Без этого каждый список с флажками выдавал столько
+         «мелких целей», сколько в нём строк. */
+      const box = el.closest('label')?.getBoundingClientRect() || r
+      if (!srOnly && (box.width < 24 || box.height < 24)) {
+        (stretched ? out.растянутые : out.мелкиеЦели).push(`${Math.round(box.width)}×${Math.round(box.height)} ${name.slice(0, 28)}`)
       }
     }
 
