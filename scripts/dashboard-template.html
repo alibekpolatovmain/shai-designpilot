@@ -314,10 +314,14 @@ function render(force) {
     </div>` : ''}
 
     ${(s.crew || []).length ? `<details class="sub" data-key="crew"><summary>Кто есть кто — ${(s.crew || []).length} ${plural((s.crew || []).length, 'роль', 'роли', 'ролей')}</summary>
-      <table style="margin-top:8px"><tbody>${s.crew.map((c) => `<tr>
+      <table style="margin-top:8px">
+        <thead><tr><th>Роль</th><th>Что делает</th><th>Модель</th><th>Как</th><th>Почему эта модель</th></tr></thead>
+        <tbody>${s.crew.map((c) => `<tr>
         <td style="white-space:nowrap"><b>${esc(c.role)}</b>${c.lead ? ' <span class="tag ok">ведёт</span>' : ''}</td>
         <td class="muted">${esc(c.does || '')}</td>
-        <td style="white-space:nowrap"><span class="tag">${esc(c.model)}</span></td></tr>`).join('')}</tbody></table>
+        <td style="white-space:nowrap"><span class="tag">${esc(c.model)}</span></td>
+        <td class="muted" style="white-space:nowrap">${esc(c.how || '')}</td>
+        <td class="muted">${esc(c.why || '')}</td></tr>`).join('')}</tbody></table>
       ${s.crewNote ? `<p class="muted" style="margin-top:8px">${esc(s.crewNote)}</p>` : ''}</details>` : ''}
 
     ${(s.log || []).length ? `<details class="sub" data-key="log"><summary>Хроника — ${s.log.length} ${plural(s.log.length, 'событие', 'события', 'событий')}</summary>
