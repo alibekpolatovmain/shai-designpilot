@@ -30,8 +30,8 @@ presets/
 ## Установка
 
 ```bash
-git clone https://github.com/<владелец>/designpilot.git
-cd designpilot && ./install.sh
+git clone https://github.com/alibekpolatovmain/shai-designpilot.git
+cd shai-designpilot && ./install.sh
 ```
 
 Или вручную: `cp -r designpilot ~/.claude/skills/`.
