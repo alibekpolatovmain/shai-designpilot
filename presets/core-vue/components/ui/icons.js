@@ -25,6 +25,7 @@ import {
   LayoutGrid, Check, X, Info, Crown, Contrast, Rows3, EllipsisVertical,
   CircleDot, RefreshCw, ChevronsUpDown, ArrowUp, ArrowDown, Minus, Folder, FolderInput,
   Calendar, Eye, EyeOff, Mail,
+  Link,
 } from 'lucide-vue-next'
 
 export const icons = {
@@ -32,6 +33,7 @@ export const icons = {
   video: Video,          /* встреча */
   doc: FileText,         /* протокол, шаблон */
   wave: AudioLines,      /* голос — центральный знак продукта */
+  link: Link,           /* «вставьте ссылку» — цепочка, а не кубики */
   plug: Blocks,          /* интеграции: кубики собираются, вилка — про питание */
   user: User,
   panel: PanelLeft,      /* свернуть сайдбар */

@@ -1,0 +1,416 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Система core-vue</title>
+<!-- Галерея дизайн-системы «core-vue». Одна страница, ноль зависимостей:
+     открывается файлом, публикуется артефактом, живёт внутри навыка.
+
+     Токены здесь — те же значения, что в presets/core-vue/design/tokens.css,
+     переписанные на голый CSS: у артефакта нет сборщика, а показывать систему
+     надо и без него. Расхождение проверяется глазами по одному месту — блоку
+     :root ниже.
+
+     Контраст страница считает сама, на живых элементах: цифра, посчитанная
+     в другом месте и вписанная руками, устаревает молча. -->
+<style>
+  :root {
+    color-scheme: light dark;
+    --canvas: #fff; --rail: #fff; --raised: #fff; --surface: #f4f5f7; --surface-2: #eef1f2;
+    --line: #e7e9ec; --line-strong: #d8dcde; --line-control: #848d8e;
+    --text: #12292b; --text-soft: #40524f; --muted: #5e6b6c; --strong: #123437;
+    --inverse: #123437; --on-inverse: #eef4f2; --on-inverse-soft: rgba(238,244,242,.72);
+    --accent: #2f6f66; --accent-hover: #275c54; --on-solid: #fff;
+    --accent-quiet: #f0f7f5; --accent-soft: #e3f0ed; --accent-line: #bfe0d9;
+    --danger: #b8514a; --danger-soft: #fbf1f0; --on-danger-soft: #ab4b45;
+    --warning: #a4682c; --warning-soft: #fdf5ec; --on-warning-soft: #996129;
+    --focus: #3b8a7f;
+    --shade-xs: rgba(18,52,55,.06); --shade-sm: rgba(18,52,55,.06); --shade-sm2: rgba(18,52,55,.05);
+    --shade-md: rgba(18,52,55,.18); --shade-md2: rgba(18,52,55,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme=light]) {
+      --canvas: #151515; --rail: #0b0b0b; --raised: #1a1a19;
+      --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.10);
+      --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.14); --line-control: rgba(255,255,255,.34);
+      --text: #f0efec; --text-soft: #c3c2b7; --muted: #95938c; --strong: #f0efec;
+      --inverse: #fff; --on-inverse: #0b0b0b; --on-inverse-soft: rgba(11,11,11,.66);
+      --accent: #69a69c; --accent-hover: #76b2a8; --on-solid: #06201d;
+      --accent-quiet: rgba(105,166,156,.12); --accent-soft: rgba(105,166,156,.20); --accent-line: rgba(105,166,156,.34);
+      --danger: #ec7e7e; --danger-soft: rgba(236,126,126,.13); --on-danger-soft: #ec7e7e;
+      --warning: #db9300; --warning-soft: rgba(219,147,0,.13); --on-warning-soft: #db9300;
+      --focus: #76b2a8;
+      --shade-xs: rgba(0,0,0,.24); --shade-sm: rgba(0,0,0,.24); --shade-sm2: rgba(0,0,0,.16);
+      --shade-md: rgba(0,0,0,.34); --shade-md2: rgba(0,0,0,.24);
+    }
+  }
+  :root[data-theme=dark] {
+    --canvas: #151515; --rail: #0b0b0b; --raised: #1a1a19;
+    --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.10);
+    --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.14); --line-control: rgba(255,255,255,.34);
+    --text: #f0efec; --text-soft: #c3c2b7; --muted: #95938c; --strong: #f0efec;
+    --inverse: #fff; --on-inverse: #0b0b0b; --on-inverse-soft: rgba(11,11,11,.66);
+    --accent: #69a69c; --accent-hover: #76b2a8; --on-solid: #06201d;
+    --accent-quiet: rgba(105,166,156,.12); --accent-soft: rgba(105,166,156,.20); --accent-line: rgba(105,166,156,.34);
+    --danger: #ec7e7e; --danger-soft: rgba(236,126,126,.13); --on-danger-soft: #ec7e7e;
+    --warning: #db9300; --warning-soft: rgba(219,147,0,.13); --on-warning-soft: #db9300;
+    --focus: #76b2a8;
+    --shade-xs: rgba(0,0,0,.24); --shade-sm: rgba(0,0,0,.24); --shade-sm2: rgba(0,0,0,.16);
+    --shade-md: rgba(0,0,0,.34); --shade-md2: rgba(0,0,0,.24);
+  }
+
+  * { box-sizing: border-box }
+  body { margin: 0; background: var(--canvas); color: var(--text); padding: 32px 20px 80px;
+         font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         -webkit-font-smoothing: antialiased }
+  .wrap { max-width: 940px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px }
+  h1 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: -.03em; font-weight: 600 }
+  h2 { margin: 0 0 4px; font-size: 20px; line-height: 28px; letter-spacing: -.025em; font-weight: 600 }
+  h3 { margin: 0 0 8px; font-size: 16px; line-height: 24px; letter-spacing: -.02em; font-weight: 600 }
+  p { margin: 0 0 12px } p:last-child { margin-bottom: 0 }
+  .sub { color: var(--text-soft); max-width: 68ch }
+  .cap { color: var(--muted); font-size: 12px; line-height: 16px }
+  section { display: flex; flex-direction: column; gap: 16px }
+  .lead { border-left: 2px solid var(--accent-line); padding-left: 12px; color: var(--text-soft); max-width: 68ch }
+  .card { border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 16px }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) }
+  .stack { display: flex; flex-direction: column; gap: 12px }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+  table { width: 100%; border-collapse: collapse; font-size: 13px }
+  th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 6px 8px; white-space: nowrap }
+  td { padding: 9px 8px; border-top: 1px solid var(--line); vertical-align: middle }
+  td.num, th.num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+         background: var(--surface); padding: 1px 5px; border-radius: 4px; color: var(--text-soft) }
+
+  /* Образцы цвета */
+  .sw { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--raised) }
+  .sw .fill { height: 56px; display: grid; place-items: center; font-size: 13px; font-weight: 600 }
+  .sw .meta { padding: 8px 10px; display: flex; flex-direction: column; gap: 1px }
+  .sw code { background: none; padding: 0; color: var(--text); font-size: 12px }
+  .ratio { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600 }
+  .pass { color: var(--accent) } .fail { color: var(--on-danger-soft) }
+
+  /* Контролы — те же значения, что в ките */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+         height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid transparent;
+         font: 600 14px/20px inherit; cursor: pointer; transition: background .15s, border-color .15s, transform .1s }
+  .btn:active { transform: translateY(1px) }
+  .btn.primary { background: var(--accent); color: var(--on-solid) }
+  .btn.primary:hover { background: var(--accent-hover) }
+  .btn.secondary { background: var(--raised); color: var(--strong); border-color: var(--line-strong) }
+  .btn.secondary:hover { background: var(--surface) }
+  .btn.outline { background: transparent; color: var(--strong); border-color: var(--line-control) }
+  .btn.outline:hover { background: var(--surface) }
+  .btn.ghost { background: transparent; color: var(--text-soft) }
+  .btn.ghost:hover { background: var(--surface); color: var(--strong) }
+  .btn.danger { background: var(--danger); color: var(--on-solid) }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; transform: none }
+  .btn.sm { height: 28px; padding: 0 10px; font-size: 13px }
+  .btn.lg { height: 44px; padding: 0 18px }
+  .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+
+  .field { height: 36px; width: 100%; padding: 0 11px; border-radius: 8px; background: var(--raised);
+           border: 1px solid var(--line-control); color: var(--text); font: 14px/20px inherit }
+  .field::placeholder { color: var(--muted) }
+  .field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft) }
+  .field.err { border-color: var(--danger) }
+  label.lbl { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text-soft) }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+           border-radius: 999px; font-size: 12px; font-weight: 600 }
+  .badge.neutral { background: var(--surface); color: var(--text-soft) }
+  .badge.ok { background: var(--accent-quiet); color: var(--accent) }
+  .badge.warn { background: var(--warning-soft); color: var(--on-warning-soft) }
+  .badge.bad { background: var(--danger-soft); color: var(--on-danger-soft) }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor }
+
+  .depth { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden }
+  .depth > div { padding: 10px 12px; font-size: 13px; border-top: 1px solid var(--line) }
+  .depth > div:first-child { border-top: 0 }
+
+  .shadow-demo { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) }
+  .shadow-demo div { height: 68px; border-radius: 12px; background: var(--raised); border: 1px solid var(--line);
+                     display: grid; place-items: center; font-size: 12px; color: var(--muted) }
+  .s-xs { box-shadow: 0 1px 2px var(--shade-xs) }
+  .s-sm { box-shadow: 0 2px 8px var(--shade-sm), 0 1px 2px var(--shade-sm2) }
+  .s-md { box-shadow: 0 12px 30px -12px var(--shade-md), 0 4px 10px -6px var(--shade-md2) }
+
+  .radii { display: flex; flex-wrap: wrap; gap: 14px }
+  .radii figure { margin: 0; display: flex; flex-direction: column; gap: 6px; align-items: center }
+  .radii i { display: block; width: 68px; height: 48px; background: var(--surface-2); border: 1px solid var(--line) }
+
+  .ban { border: 1px solid var(--line); border-left: 3px solid var(--on-danger-soft); border-radius: 8px;
+         padding: 10px 12px; background: var(--raised) }
+  .toggle { position: relative; width: 40px; height: 24px; border-radius: 999px; background: var(--surface-2);
+            border: 1px solid var(--line-control); cursor: pointer; padding: 0 }
+  .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+                   border-radius: 999px; background: var(--raised); box-shadow: 0 1px 2px var(--shade-xs);
+                   transition: transform .15s }
+  .toggle[aria-checked=true] { background: var(--accent); border-color: var(--accent) }
+  .toggle[aria-checked=true]::after { transform: translateX(16px) }
+  .toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+  .themer { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line) }
+  .themer button { border: 0; background: none; padding: 4px 12px; border-radius: 999px; cursor: pointer;
+                   font: 600 12px/18px inherit; color: var(--muted) }
+  .themer button[aria-pressed=true] { background: var(--raised); color: var(--text); box-shadow: 0 1px 2px var(--shade-xs) }
+  .themer button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<div class="wrap">
+
+<header class="stack">
+  <div class="row" style="justify-content:space-between">
+    <h1>Система core-vue</h1>
+    <div class="themer" role="group" aria-label="Тема">
+      <button type="button" data-t="light" aria-pressed="false">светлая</button>
+      <button type="button" data-t="" aria-pressed="true">как в системе</button>
+      <button type="button" data-t="dark" aria-pressed="false">тёмная</button>
+    </div>
+  </div>
+  <p class="sub">Набор решений с обоснованиями, а не список красивых значений. Каждое число либо посчитано, либо
+  взято из опубликованной шкалы — и рядом сказано, из какой. Контраст на этой странице считается на живых
+  элементах: цифра, вписанная руками, устаревает молча.</p>
+</header>
+
+<section>
+  <div><h2>Цвет: два яруса</h2>
+  <p class="sub">Палитра <code>--p-*</code> держит литералы и не порождает утилит. Компонентам видны только роли
+  <code>--color-*</code>. Смена бренда — правка восьми строк, а не обход двухсот файлов; тёмная тема — второй
+  аргумент <code>light-dark()</code>, а не второй набор классов.</p></div>
+
+  <div class="lead">Правило, из которого выведены все кромки: <b>контраст несёт то, что опознаёт контрол.</b>
+  Кнопка с подписью — подпись; кнопка-иконка — глиф; пустое поле ввода опознаётся только кромкой, поэтому
+  для неё 3:1 обязательны.</div>
+
+  <div class="grid" id="swatches"></div>
+
+  <div class="card">
+    <h3>Почему существует <code>on-danger-soft</code></h3>
+    <p class="sub">Цвет состояния на своей же мягкой подложке контраста не даёт — замерено 4.39 и 4.23 при норме 4.5.
+    Отдельный токен для текста на своей подложке — тот же приём, что <code>on-*-container</code> в Material 3.
+    Без него чип «Сбой» выглядит правильным и не читается.</p>
+    <div class="row" style="margin-top:12px">
+      <span class="badge neutral"><i class="dot"></i>Черновик</span>
+      <span class="badge ok"><i class="dot"></i>Готово</span>
+      <span class="badge warn"><i class="dot"></i>Ждёт</span>
+      <span class="badge bad"><i class="dot"></i>Сбой</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div><h2>Типографика</h2>
+  <p class="sub">Одна гарнитура, семь ступеней. Интерлиньяж объявлен рядом с кеглем и приходит вместе с ним —
+  отдельные <code>leading-*</code> были ровно тем местом, где вертикальный ритм разъезжался.</p></div>
+  <div class="card stack">
+    <div style="font-size:24px;line-height:32px;letter-spacing:-.03em;font-weight:600">Заголовок экрана <span class="cap">— text-h1 · 24/32</span></div>
+    <div style="font-size:20px;line-height:28px;letter-spacing:-.025em;font-weight:600">Заголовок раздела <span class="cap">— text-h2 · 20/28</span></div>
+    <div style="font-size:16px;line-height:24px;letter-spacing:-.02em;font-weight:600">Заголовок секции <span class="cap">— text-title · 16/24 вес 600</span></div>
+    <div style="font-size:16px;line-height:24px;max-width:68ch">То, что читают подряд: протокол встречи, реплики, длинное описание. Мера строки — 68ch. <span class="cap">— text-doc · 16/24</span></div>
+    <div style="font-size:14px;line-height:20px">Основной кегль интерфейса: подписи, кнопки, пункты меню. <span class="cap">— text-ui · 14/20</span></div>
+    <div style="font-size:12px;line-height:16px;color:var(--muted)">Метаданные, счётчики, служебные подписи — text-caption · 12/16</div>
+  </div>
+  <p class="cap">Кегль не равен уровню: <code>text-h1</code> на <code>&lt;h2&gt;</code> — норма, два <code>&lt;h1&gt;</code> на странице — дефект.</p>
+</section>
+
+<section>
+  <div><h2>Форма говорит функцией</h2>
+  <p class="sub">Семь произвольных чисел сведены к четырём, выведенным из одного, как в shadcn: 8px на контроле,
+  ±4 на ступень. Капсула в кабинете достаётся не действию, а статусу: на витрине кнопка одна и капсула зовёт
+  нажать, здесь контролов десятки — и капсула делает каждый похожим на призыв.</p></div>
+  <div class="card radii">
+    <figure><i style="border-radius:4px"></i><figcaption class="cap">hair · 4px</figcaption></figure>
+    <figure><i style="border-radius:6px"></i><figcaption class="cap">micro · 6px</figcaption></figure>
+    <figure><i style="border-radius:8px"></i><figcaption class="cap">control · 8px</figcaption></figure>
+    <figure><i style="border-radius:12px"></i><figcaption class="cap">surface · 12px</figcaption></figure>
+    <figure><i style="border-radius:16px"></i><figcaption class="cap">hero · 16px</figcaption></figure>
+    <figure><i style="border-radius:999px"></i><figcaption class="cap">капсула · статус</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <div><h2>Глубина</h2>
+  <p class="sub">Плоский грунт, слои разделены ступенью заливки и линией 1px. Тень — редкое событие, окрашена
+  в чернильный, а не в чёрный. Одна героическая тень на экран. Градиентов нет: они не переживают тёмную тему.</p></div>
+  <div class="row" style="align-items:stretch;gap:14px">
+    <div class="depth" style="flex:1 1 260px">
+      <div style="background:var(--rail)">rail — сайдбар, нижняя ступень</div>
+      <div style="background:var(--canvas)">canvas — грунт приложения</div>
+      <div style="background:var(--raised)">raised — карточка, панель, строка</div>
+      <div style="background:var(--surface)">surface — тихая заливка</div>
+      <div style="background:var(--surface-2)">surface-2 — нажатое, наведённое</div>
+    </div>
+    <div class="shadow-demo" style="flex:1 1 300px">
+      <div class="s-xs">shadow-xs</div><div class="s-sm">shadow-sm</div><div class="s-md">shadow-md</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div><h2>Действие</h2>
+  <p class="sub">Пять видов и три размера — 28 / 36 / 44. На тач каждый размер поднимается до ближайшего,
+  проходящего 44px. Нажатие ощущается сдвигом на 1px: без него нажатой чувствуется только кнопка с подписью.</p></div>
+  <div class="card stack">
+    <div class="row">
+      <button class="btn primary">Начать запись</button>
+      <button class="btn secondary">Выбрать файл</button>
+      <button class="btn outline">Вставить ссылку</button>
+      <button class="btn ghost">Отмена</button>
+      <button class="btn danger">Удалить встречу</button>
+      <button class="btn secondary" disabled>Недоступно</button>
+    </div>
+    <div class="row">
+      <button class="btn primary sm">28px — в строке</button>
+      <button class="btn primary">36px — по умолчанию</button>
+      <button class="btn primary lg">44px — единственное на экране</button>
+    </div>
+    <p class="cap">Фокус — одно кольцо, а не два: контрол со своей кромкой красит кромку и получает гало,
+    элемент без кромки — <code>outline: 2px</code> с отступом 2px. Пройдите табом.</p>
+  </div>
+</section>
+
+<section>
+  <div><h2>Ввод</h2>
+  <p class="sub">Пустое поле опознаётся только кромкой, поэтому её контраст — единственный обязательный здесь:
+  <code>line-control</code> даёт 3:1 и в свете, и в темноте. Фокус не рисует второе кольцо вокруг первого.</p></div>
+  <div class="card grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    <label class="lbl">Название встречи<input class="field" placeholder="Планёрка отдела продаж" /></label>
+    <label class="lbl">Ссылка на звонок<input class="field" value="meet.google.com/abc-defg-hij" /></label>
+    <label class="lbl">Почта<input class="field err" value="alibek@" aria-describedby="e1" />
+      <span id="e1" style="color:var(--on-danger-soft);font-weight:600;font-size:12px">Не хватает домена после @ — например shai.pro</span></label>
+    <label class="lbl">Запись включена
+      <span class="row" style="height:36px"><button class="toggle" role="switch" aria-checked="true" aria-label="Записывать встречу"></button>
+      <span style="font-weight:400;color:var(--text)">shainote подключится к звонку</span></span></label>
+  </div>
+</section>
+
+<section>
+  <div><h2>Метрика и плотность</h2>
+  <p class="sub">Плотность живёт в метрике, а не в разметке: <code>data-density</code> переопределяет четыре числа —
+  высоту контрола, внутренний шаг, поля строки и зазор разделов. Экраны при этом не переписываются, а
+  <b>кегль не меняется никогда</b>: плотность жмёт воздух, а не читаемость.</p></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Токен</th><th>Свободно</th><th>Компактно</th><th>Что берёт</th></tr></thead>
+      <tbody>
+        <tr><td><code>ctl</code></td><td class="num">36px</td><td class="num">32px</td><td class="cap">кнопка, поле, пункт меню</td></tr>
+        <tr><td><code>ctl-inner</code></td><td class="num">28px</td><td class="num">24px</td><td class="cap">сегмент, пункт списка</td></tr>
+        <tr><td><code>row</code></td><td class="num">10px</td><td class="num">6px</td><td class="cap">поля строки и ячейки</td></tr>
+        <tr><td><code>stack</code></td><td class="num">24px</td><td class="num">16px</td><td class="cap">зазор между разделами</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div><h2>Кит — 60 компонентов</h2>
+  <p class="sub">Поведение берётся из примитивов, а не пишется руками: ловушка фокуса, стрелки в меню,
+  roving tabindex, <code>aria-*</code>. Иконки — Lucide, сетка 24, штрих 1.75.</p></div>
+  <div class="card">
+    <table>
+      <tbody>
+        <tr><td style="white-space:nowrap"><b>Действие</b></td><td class="cap">UiButton · UiIconButton · UiLink · UiKbd · UiToggle · UiToggleGroup</td></tr>
+        <tr><td><b>Ввод</b></td><td class="cap">UiField · UiTextarea · UiSelect · UiCombobox · UiCheckbox · UiRadioGroup · UiNumberField · UiSlider · UiTagsInput · UiDatePicker · UiFileDrop · FormField</td></tr>
+        <tr><td><b>Показ</b></td><td class="cap">UiCard · UiRow · UiTable · UiStat · UiBadge · StatusChip · UiAvatar · UiMeter · UiProgress · UiDivider · UiBreadcrumbs · UiPagination · TierMark</td></tr>
+        <tr><td><b>Графики</b></td><td class="cap">UiChartBars · UiChartLine · UiChartDonut · UiSparkline · ChartFrame — без библиотеки, у каждого есть таблица для диктора</td></tr>
+        <tr><td><b>Слои</b></td><td class="cap">UiDialog · UiAlertDialog · UiDrawer · UiPopover · UiTooltip · UiMenu · UiContextMenu · UiToaster</td></tr>
+        <tr><td><b>Структура</b></td><td class="cap">UiTabs + UiTabsPanel · UiAccordion · UiCollapsible · UiToolbar</td></tr>
+        <tr><td><b>Состояния</b></td><td class="cap">EmptyState · ErrorState · UiSkeleton · UiSpinner · UiPreloader · SlotNote</td></tr>
+        <tr><td><b>Каркас</b></td><td class="cap">AppShell · SideNav · TopBar · AppPage · CommandPalette · AppGrid</td></tr>
+      </tbody>
+    </table>
+    <p class="cap" style="margin-top:12px"><b>UiTabs без UiTabsPanel не существует.</b> Полоска вкладок без панелей
+    проходит любой линтер и остаётся ложью: если панелей нет — это UiToggleGroup.</p>
+  </div>
+</section>
+
+<section>
+  <div><h2>Запрещено</h2>
+  <p class="sub">Не вкусовщина: каждый пункт — след конкретной поломки, которую чинили.</p></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+    <div class="ban">Градиенты — не переживают тёмную тему и спорят с плоским грунтом</div>
+    <div class="ban">Белый текст на светлом бренде — 2.95:1 при норме 4.5</div>
+    <div class="ban">Обводки толще 1px, кроме кольца фокуса</div>
+    <div class="ban">Кегль мимо семи ступеней и цвет мимо ролей</div>
+    <div class="ban">Вкладки без панелей — синтаксис безупречен, семантика лжёт</div>
+    <div class="ban">Выдуманные данные вместо метки незаполненного</div>
+    <div class="ban">Два кольца фокуса с полосой фона между ними</div>
+    <div class="ban">Своя рисовка иконок вместо набора с единой сеткой</div>
+  </div>
+</section>
+
+<p class="cap">Источник правды — <code>presets/core-vue/design/tokens.css</code>. Эта страница переписывает те же
+значения на голый CSS, чтобы систему можно было показать без сборщика.</p>
+
+</div>
+
+<script>
+/* Контраст считается на живых элементах: берётся вычисленный цвет текста,
+   под ним собирается фон со смешиванием прозрачных слоёв — иначе полупрозрачная
+   подложка на тёмной теме даёт красивое и неверное число. */
+const parse = (c) => {
+  const m = String(c).match(/rgba?\(([^)]+)\)/); if (!m) return null
+  const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number)
+  return { rgb: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 }
+}
+const over = (f, b) => ({ rgb: f.rgb.map((v, i) => v * f.a + b[i] * (1 - f.a)), a: 1 })
+const lum = ([r, g, b]) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4 }
+  return .2126 * f(r) + .7152 * f(g) + .0722 * f(b) }
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05) }
+const bgOf = (el) => { let n = el, acc = null
+  while (n) { const b = parse(getComputedStyle(n).backgroundColor)
+    if (b && b.a > 0) { acc = acc ? { rgb: over(acc, b.rgb).rgb, a: 1 } : b; if (acc.a >= .999) return acc.rgb }
+    n = n.parentElement }
+  return (parse(getComputedStyle(document.body).backgroundColor) || { rgb: [255, 255, 255] }).rgb }
+
+/* Пары «текст на подложке», ради которых роли и разделены */
+const PAIRS = [
+  ['text',            'canvas',       'основной текст'],
+  ['text-soft',       'canvas',       'вторичный текст'],
+  ['muted',           'canvas',       'подписи и метаданные'],
+  ['accent',          'raised',       'акцентный текст и ссылка'],
+  ['on-solid',        'accent',       'текст на заливке действия'],
+  ['on-solid',        'danger',       'текст на заливке удаления'],
+  ['on-inverse',      'inverse',      'текст на тёмной плашке'],
+  ['on-danger-soft',  'danger-soft',  'текст на своей подложке'],
+  ['on-warning-soft', 'warning-soft', 'текст на своей подложке'],
+  ['line-control',    'raised',       'кромка контрола — норма 3:1'],
+]
+const NORM = { 'line-control': 3 }
+
+function draw() {
+  const host = document.getElementById('swatches')
+  host.innerHTML = PAIRS.map(([fg, bg, what]) => `
+    <div class="sw">
+      <div class="fill" data-fg="${fg}" data-bg="${bg}"
+           style="background:var(--${bg});color:var(--${fg})">${fg === 'line-control' ? '▁▁▁▁▁' : 'Абв 123'}</div>
+      <div class="meta">
+        <code>${fg}</code>
+        <span class="cap">на ${bg} · ${what}</span>
+        <span class="ratio" data-out></span>
+      </div>
+    </div>`).join('')
+
+  host.querySelectorAll('.fill').forEach((el) => {
+    const fg = parse(getComputedStyle(el).color)
+    const back = bgOf(el)
+    const solid = fg.a >= .999 ? fg.rgb : over(fg, back).rgb
+    const r = ratio(solid, back)
+    const need = NORM[el.dataset.fg] || 4.5
+    const out = el.parentElement.querySelector('[data-out]')
+    out.textContent = r.toFixed(2) + ':1 · норма ' + need
+    out.className = 'ratio ' + (r >= need ? 'pass' : 'fail')
+  })
+}
+
+document.querySelectorAll('.themer button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.themer button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+  if (b.dataset.t) document.documentElement.setAttribute('data-theme', b.dataset.t)
+  else document.documentElement.removeAttribute('data-theme')
+  requestAnimationFrame(draw)
+}))
+document.querySelectorAll('.toggle').forEach((t) => t.addEventListener('click', () =>
+  t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true'))))
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => requestAnimationFrame(draw))
+draw()
+</script>

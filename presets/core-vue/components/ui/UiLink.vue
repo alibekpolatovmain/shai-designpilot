@@ -19,8 +19,12 @@ defineProps({
   size: { type: String, default: 'caption' }, // caption | ui
 })
 
-const base = 'inline-flex items-center gap-1 rounded-hair font-semibold text-accent transition-colors ' +
-  'hover:text-accent-hover hover:underline hover:underline-offset-4 active:text-accent-hover'
+/* min-h-6 — не отступ ради красоты, а цель нажатия. Строка в 16px даёт
+   область высотой 16px: WCAG 2.5.8 требует 24×24, и ссылка-действие, стоящая
+   отдельной строкой, под исключение для ссылок внутри текста не подпадает. */
+const base = 'inline-flex min-h-6 items-center gap-1 rounded-hair font-semibold text-accent ' +
+  'transition-colors hover:text-accent-hover hover:underline hover:underline-offset-4 ' +
+  'active:text-accent-hover'
 </script>
 
 <template>
