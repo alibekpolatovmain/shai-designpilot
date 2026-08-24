@@ -55,6 +55,18 @@
     return acc ? over(acc, page).rgb : page.rgb
   }
 
+  /* ── замер идёт по устоявшемуся цвету ──────────────────
+     Смена темы едет через `transition-colors`, и `getComputedStyle` посреди
+     перехода отдаёт промежуточное значение. Одна проверка через четверть
+     секунды после переключения темы дала два десятка провалов контраста,
+     которых на экране не было. Поэтому переходы и анимации гасятся на время
+     замера и возвращаются сразу после: числа берутся из конечного состояния,
+     а не из середины пути. */
+  const freeze = document.createElement('style')
+  freeze.textContent = '*,*::before,*::after{transition:none!important;animation:none!important}'
+  document.head.appendChild(freeze)
+  void document.body.offsetHeight
+
   /* ── сбор ─────────────────────────────────────────────── */
   const out = { контраст: [], наГрадиенте: [], безымянные: [], мелкиеЦели: [], растянутые: [],
                 поля: [], картинки: [], заголовки: [], вкладки: [], итог: {} }
@@ -95,7 +107,13 @@
       const stretched = [...el.querySelectorAll('*')].length === 0 &&
         (cs.getPropertyValue('--tw-content') || '').length === 0 && el.matches('a') &&
         S(el, '::after').position === 'absolute'
-      if (r.width < 24 || r.height < 24) {
+      /* Спрятанное для диктора указателем недоступно вовсе, и мерить его
+         как цель нажатия бессмысленно: ссылка «К содержимому» в покое
+         обрезана до 1px и раскрывается только на фокусе. Первая версия
+         честно писала «24×16» и отправляла чинить то, что не сломано. */
+      const srOnly = cs.clipPath === 'inset(50%)' ||
+        (cs.position === 'absolute' && cs.overflow === 'hidden' && r.width <= 2 && r.height <= 2)
+      if (!srOnly && (r.width < 24 || r.height < 24)) {
         (stretched ? out.растянутые : out.мелкиеЦели).push(`${Math.round(r.width)}×${Math.round(r.height)} ${name.slice(0, 28)}`)
       }
     }
@@ -125,5 +143,6 @@
       out.поля.length + out.картинки.length + out.заголовки.length + out.вкладки.length,
   }
   Object.keys(out).forEach((k) => { if (Array.isArray(out[k]) && !out[k].length) delete out[k] })
+  freeze.remove()
   return JSON.stringify(out, null, 1)
 })()
