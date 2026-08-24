@@ -114,6 +114,24 @@
   .mate .doing { font-size: 12px; color: var(--soft); line-height: 16px }
   .mate .meta { font-size: 11px; color: var(--muted) }
   /* «Не покладая рук» — три точки, бегущие только у тех, кто работает */
+  /* Ведущий стоит первым и во всю ширину: он не один из семи, он тот, кто
+     отвечает за результат. Раньше его не было вовсе — семь исполнителей и
+     ни одного, с кого спросить. */
+  .mate.lead { grid-column: 1 / -1; border-color: var(--accent); background: var(--raised) }
+  .mate.lead .face { width: 44px; height: 44px; background: var(--accent); color: #fff }
+  .mate.lead b { font-size: 15px }
+  .lead-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+              background: var(--accent); color: #fff; margin-left: 8px; vertical-align: 1px }
+  .mate.lead .doing { font-size: 13px; color: var(--text) }
+
+  /* Состояние прогона одной строкой: «идёт», «ждёт вас», «сдан» — и чем
+     именно занят или что держит. Без неё страница молчит о главном. */
+  .runstate { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px;
+              border-radius: 999px; font-size: 13px; font-weight: 600; width: fit-content }
+  .runstate.go { background: var(--accent-quiet); color: var(--accent); border: 1px solid var(--accent-line) }
+  .runstate.wait { background: var(--warn-quiet); color: var(--warn); border: 1px solid var(--warn) }
+  .runstate.done { background: var(--surface); color: var(--soft); border: 1px solid var(--line) }
+  .runstate span { font-weight: 400; color: var(--soft); margin-left: 6px }
   .work-dots { display: inline-flex; gap: 3px; vertical-align: middle; margin-left: 4px }
   .work-dots i { width: 3px; height: 3px; border-radius: 999px; background: var(--accent);
                  animation: blink 1.2s ease-in-out infinite }
@@ -251,6 +269,22 @@ const HUMAN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
    неё пишется «вёл сам». Прошлая версия ставила «заданий 11», имея в виду
    одиннадцать экранов, — число выглядело учётом и было пересказом. */
 function mateCard(c) {
+  if (c.lead) {
+    const w = c.state === 'working'
+    return `<div class="mate lead ${c.state || 'done'}">
+      <span class="face">${HUMAN}</span>
+      <span class="who">
+        <b>${esc(c.role)}<span class="lead-tag">ведёт прогон</span></b>
+        <span class="doing">${esc(c.now || c.does || '')}</span>
+        <span class="meta">
+          <span class="tag">${esc(c.model)}</span>
+          ${w ? '<span class="ask">ведёт</span><span class="work-dots"><i></i><i></i><i></i></span>'
+              : 'отвечает за результат целиком'}
+          · зовёт остальных по одному, а не пачкой
+        </span>
+      </span>
+    </div>`
+  }
   const st = c.state || (c.runs ? 'done' : 'idle')
   const solo = c.solo !== undefined ? c.solo : String(c.model || '').includes('главн')
   const label = { working: 'работает', done: 'отработала', idle: 'ещё не вступала' }[st]
@@ -468,6 +502,14 @@ function render(force) {
       return `<button class="st ${st.state}" type="button" data-go="${id}"><span class="dot"></span>${name}</button>`
     }).join('')}</nav>
 
+    ${(() => {
+      if (s.finishedAt) return `<div class="runstate done">Прогон сдан<span>· цель достигнута, находок без ответа нет</span></div>`
+      if (working.length) return `<div class="runstate go">Идёт работа<span>· ${working.map((c) => esc(c.role)).join(', ')}</span></div>`
+      const hold = openQ.length + openRecs.length
+      if (hold) return `<div class="runstate wait">Ждёт вас — ${hold} ${plural(hold, 'решение', 'решения', 'решений')}<span>· бригада свободна, дальше без вашего слова нельзя</span></div>`
+      return `<div class="runstate go">Прогон идёт<span>· следующий шаг за ведущим</span></div>`
+    })()}
+
     ${s.goal ? `<div class="goal">
       <h3>Цель прогона</h3>
       <p class="txt" style="margin:0">${esc(s.goal)}</p>
@@ -490,7 +532,9 @@ function render(force) {
     ${crew.length ? `<section>
       <div class="row" style="justify-content:space-between;margin-bottom:10px">
         <h2>Бригада</h2>
-        <span class="muted">${working.length ? `${working.length} ${plural(working.length, 'роль работает', 'роли работают', 'ролей работают')} прямо сейчас` : 'сейчас никто не занят'}</span>
+        <span class="muted">${working.length
+          ? `${working.length} ${plural(working.length, 'роль работает', 'роли работают', 'ролей работают')} прямо сейчас`
+          : (openQ.length + openRecs.length ? 'бригада свободна — ждём вашего решения' : 'бригада свободна — ведущий решает, кого звать дальше')}</span>
       </div>
       <div class="crew">${crew.map(mateCard).join('')}</div>
       ${s.crewNote ? `<p class="note" style="margin:12px 0 0">${esc(s.crewNote)}</p>` : ''}
