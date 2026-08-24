@@ -71,10 +71,11 @@
   .state.wait { background: var(--warn-quiet); color: var(--warn); border-color: var(--warn) }
   .state.done { background: var(--surface); color: var(--soft); border-color: var(--line) }
   .beat { width: 7px; height: 7px; border-radius: 999px; background: currentColor }
-  .state.go .beat { animation: beat 1.8s ease-out infinite }
-  @keyframes beat { 0% { box-shadow: 0 0 0 0 currentColor; opacity: 1 }
-                    70% { box-shadow: 0 0 0 6px transparent; opacity: .5 }
-                    100% { box-shadow: 0 0 0 0 transparent; opacity: 1 } }
+  /* Мигание — сменой непрозрачности, а не гало. Гало того же цвета на том же
+     фоне не видно вовсе: первая версия «пульсировала» так, что владелец
+     спросил, почему ничего не мигает. */
+  .state.go .beat { animation: blip 1.15s ease-in-out infinite }
+  @keyframes blip { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
 
   /* 2. Цель */
   .goal { font-size: 15px; line-height: 23px; color: var(--soft) }
@@ -101,7 +102,16 @@
   .who i { font-style: normal; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
            background: var(--surface); color: var(--muted); white-space: nowrap }
   .who i.lead { background: var(--accent); color: #fff }
-  .who i.now { background: var(--accent-quiet); color: var(--accent) }
+  /* Роль, которая работает прямо сейчас, — единственное живое место на
+     странице. Тихая подсветка этого не говорит: нужен залитый чип и точка,
+     которая мигает. Строка конвейера — то место, куда смотрят. */
+  .who i.now { background: var(--accent); color: #fff; display: inline-flex; align-items: center; gap: 5px }
+  .who i.now::before { content: ""; width: 5px; height: 5px; border-radius: 999px;
+                       background: currentColor; animation: blip 1.15s ease-in-out infinite }
+  details.st.active .num { position: relative }
+  details.st.active .num::after { content: ""; position: absolute; inset: -3px; border-radius: 999px;
+                                  border: 1.5px solid var(--accent); animation: ring 1.9s ease-out infinite }
+  @keyframes ring { 0% { opacity: .7; transform: scale(.9) } 100% { opacity: 0; transform: scale(1.35) } }
   .st-body { padding: 2px 14px 16px 44px; display: flex; flex-direction: column; gap: 12px;
              font-size: 13px; border-top: 1px solid var(--line) }
   @media (max-width: 720px) {
@@ -163,7 +173,7 @@ function rolesAt(s, id, curId) {
   ;(s.crew || []).forEach((c) => { if (c.stage === id) set.add(c.role) })
   const working = new Set((s.crew || []).filter((c) => c.state === 'working').map((c) => c.role))
   return [...set].map((r) => {
-    const cls = r === 'Ведущий' ? 'lead' : (working.has(r) && id === curId ? 'now' : '')
+    const cls = r === 'Ведущий' ? 'lead' : (working.has(r) ? 'now' : '')
     return `<i class="${cls}">${esc(SHORT[r] || r)}</i>`
   }).join('')
 }
@@ -216,8 +226,8 @@ function body(id, s) {
       <table style="margin-top:6px"><tbody>${(q.rows || []).map((r) => `<tr>
         <td style="white-space:nowrap"><span class="tag ${r.kind === 'Поломка' ? 'bad' : 'ask'}">${esc(r.kind)}</span></td>
         <td>${esc(r.what)}<br /><span class="muted">${esc(r.detail)}</span></td></tr>`).join('')}</tbody></table></details>` : ''}
-    <details class="sub"><summary>Дефекты — ${fixed} из ${defects.length} починено</summary>
-      <ul style="margin-top:6px">${defects.map((x) => `<li><span class="${x.fixed ? 'fixed' : 'open'}">${x.fixed ? '✓' : '•'}</span> ${esc(x.text)}</li>`).join('')}</ul></details>`
+    ${defects.length ? `<details class="sub"><summary>Дефекты — ${fixed} из ${defects.length} починено</summary>
+      <ul style="margin-top:6px">${defects.map((x) => `<li><span class="${x.fixed ? 'fixed' : 'open'}">${x.fixed ? '✓' : '•'}</span> ${esc(x.text)}</li>`).join('')}</ul></details>` : ''}`
   }
 
   if (id === 'polish') return `
