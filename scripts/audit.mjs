@@ -81,9 +81,17 @@
     const r = el.getBoundingClientRect()
     if (!r.width || !r.height) return
 
+    /* Выключенный контрол исключён из требования по контрасту прямо в
+       WCAG 1.4.3 — «неактивные элементы интерфейса» названы там отдельно.
+       Без этого исключения приборы дают находку на каждой кнопке, которая
+       ждёт заполнения формы: «Сохранить» в покое, «Отправить» до ввода.
+       Проверено на своей же форме: 3.66 на выключенной «Сохранить». */
+    const off = el.disabled || el.getAttribute('aria-disabled') === 'true' ||
+      el.closest('[disabled],[aria-disabled=true]')
+
     const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim())
       .map((n) => n.textContent.trim()).join(' ')
-    if (own) {
+    if (own && !off) {
       const fg = parse(cs.color); const bg = bgOf(el)
       if (fg && !bg) out.наГрадиенте.push(`«${own.slice(0, 40)}» — измерить нельзя, под текстом градиент`)
       if (fg && bg) {
@@ -131,7 +139,15 @@
     }
 
     if (el.tagName === 'IMG' && el.getAttribute('alt') === null) out.картинки.push((el.getAttribute('src') || '').slice(0, 48))
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) && el.type !== 'hidden') {
+    /* Поле, спрятанное И от диктора, И от клавиатуры, — не безымянный
+       контрол, а механизм за подписанной кнопкой: так устроен выбор файла,
+       где нажимают кнопку, а `input[type=file]` вызывается программно.
+       Требовать у него имя бессмысленно — диктор его всё равно не увидит.
+       Оба признака обязательны: одного aria-hidden мало, иначе спрячется
+       настоящее поле. */
+    const plumbing = el.getAttribute('aria-hidden') === 'true' && el.tabIndex < 0
+
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) && el.type !== 'hidden' && !plumbing) {
       const named = el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') ||
         (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) || el.closest('label')
       if (!named) out.поля.push(el.getAttribute('placeholder') || el.name || el.type)
